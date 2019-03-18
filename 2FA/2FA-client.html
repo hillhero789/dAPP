@@ -1,0 +1,11 @@
+<input type="password" name="textfield" id="pwd" /> <button onclick="setPwd();"> summit </button>
+<script>
+    function setPwd() {
+        var pwd = document.getElementById("pwd").value;
+        alert(pwd);
+    }
+
+    window.OnEvent = function(Data) {
+        console.log(Data.Description);
+    }
+</script>

@@ -27,7 +27,7 @@ input.radius
 </style>
 
 <div class = "item">
-<DIV id="idApp" style="align-items: center; width: 100%;height: 40px;font-size: x-large">俄罗斯方块</DIV>
+<DIV id="idApp" style="align-items: center; width: 100%;height: 40px;font-size: x-large">Tetris</DIV>
 User:
 <select size="1" id="idUser" style="width: 250px" class="" onchange="SaveValues()">
     <option value="0">User1</option>
@@ -45,13 +45,13 @@ User:
         </div>
 </div>        
 
-
-
-
-
-
 <script>
+document.getElementById("box").focus();
+
 var winNum = 0;
+var winNumLast = 0;
+var pace = 500;
+
 var SaveIdArr=["idUser"];
 var TotalCount=0;
 window.addEventListener('Init',function ()
@@ -119,10 +119,8 @@ window.addEventListener('Init',function ()
 });
 window.addEventListener('UpdateInfo',UpdateFillUser);
 
-			
 
 var map = eval("[" + Array(23).join("0x801,") + "0xfff]"); 
-
 
 var tatris = [[0x6600],
                 [0x2222, 0x0f00],
@@ -141,121 +139,97 @@ var dia, pos, bak, run;
 
 
 function start(){ 
-
     dia = tatris[~~(Math.random() * 7)];
-    
     bak = pos = {fk : [],                                    
                     y : 0,                                        
                     x : 4,                                     
                     s : ~~(Math.random() * dia.length)};        
-    
     rotate(0);
-} 
+    
+    if(winNumLast!=winNum)
+    {
+        pace -= 5;
+        if(pace <=50)
+            pace = 50;
+        clearInterval(run);
+        run = setInterval("down()", pace);
+        document.getElementById("idResult").innerText = pace;
+    }
 
+} 
 
 function rotate(r){ 
     var f = dia[pos.s = (pos.s + r) % dia.length];
-    
     for(var i = 0; i < 4; i++) {
-        
         pos.fk[i] = (f >> (12 - i * 4) & 0x000f) << pos.x;
     }
-    
     update(is());  
 }      
 
 function is(){  
-
     for(var i = 0; i < 4; i++) {
-
         if((pos.fk[i] & map[pos.y + i]) != 0) {
-            
             return pos = bak;
         }                            
     }    
-
 }      
 
 function update(t){  
-
     bak = {fk : pos.fk.slice(0), y : pos.y, x : pos.x, s : pos.s};  
-
     if (t) {
-    
         return;
     }
-    
     for(var i = 0, a2 = ""; i < 22; i++) {
-
         a2 += map[i].toString(2).slice(1, -1) + "<br/>";
     }
-    
     for(var i = 0, n; i < 4; i++) {
         if(/([^0]+)/.test(bak.fk[i].toString(2).replace(/1/g, "\u25a1"))) { 
-        
             a2 = a2.substr(0, n = (bak.y + i + 1) * 15 - RegExp.$_.length - 4) + RegExp.$1 + a2.slice(n + RegExp.$1.length);
         }
     }
-
     document.getElementById("box").innerHTML = a2.replace(/1/g, "\u25a0").replace(/0/g, "\u3000");
 }  
 
 function over(){  
-
     document.onkeydown = null;
-    
     clearInterval(run);
-    
     if(winNum>0)
         sendRewardTera(winNum);
 }  
 
 function down(){ 
+    winNumLast = winNum;
     ++pos.y; 
-
     if(is()){ 
-    
         for(var i = 0; i < 4 && pos.y + i < 22; i++) { 
-        
             if((map[pos.y + i] |= pos.fk[i]) == 0xfff) {
-            
                 //行删除
                 map.splice(pos.y + i, 1);
                 winNum++;
                 map.unshift(0x801);
             }
         }                                
-
         if(map[1] != 0x801) {
-            
             return over();
         }
-        
         start();  
     } 
-    
     update();  
 }  
 
 function move(t, k){  
-
     pos.x += k;  
-    
     for(var i = 0; i < 4; i++) { 
-        
         pos.fk[i] *= t;  
     }
-    
     update(is());  
 }  
 
 
 document.onkeydown = function(e) {  
-
     eval(keycom[(e ? e : event).keyCode]);  
 };
-    
-start();
 
+start();
 run = setInterval("down()", 500);
 </script>

@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" /> 
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TERA Light</title>
+    <link rel="shortcut icon" href="./tera.ico" type="image/vnd.microsoft.icon">
+
+    <script type="text/javascript" src="./JS/coinlib.js"></script>
+    <script type="text/javascript" src="./JS/client.js"></script>
+    <script type="text/javascript" src="./JS/sha3.js"></script>
+    <script type="text/javascript" src="./JS/crypto-client.js"></script>
+    <script type="text/javascript" src="./JS/terahashlib.js"></script>
+    <script type="text/javascript" src="./JS/wallet-web.js"></script>
+    <script type="text/javascript" src="./JS/wallet-lib.js"></script>
+    <script type="text/javascript" src="./JS/diagram.js"></script>
+    <!--<script type="text/javascript" src="./JS/sign-lib-min.js"></script>-->
+
+    <script>
+//        window.WEBWALLET=1;
+
+        var PubKeyStr;
+        var NumAccountList=0;
+
+        //Pagination
+        var SaveIdArr=["idAccount","idTo","idSumSend","idDescription","idCurTabName","idPubKey","idPrivKey","idViewBlockNum","idViewAccountNum","idViewDappNum"];
+        var CONFIG_DATA={};
+        CONFIG_DATA={PRICE_DAO:{NewAccount:10}};
+        var CountViewRows=20;
+        var DefAccounts={BlockName:"idPaginationAccount", NumName:"idViewAccountNum", TabName:"explorer_accounts",APIName:"GetAccountList"};
+        var DefBlock={BlockName:"idPaginationBlock", NumName:"idViewBlockNum", TabName:"explorer_blocks",APIName:"GetBlockList"};
+        var DefDapps={BlockName:"idPaginationDapps", NumName:"idViewDappNum", TabName:"dapps_list",APIName:"GetDappList",CountViewRows:10};
+        function SetImg() {};
+
+
+
+        window.onload=function()
+        {
+            LoadSignLib();
+
+            if(localStorage["NETWORK"] || window.location.protocol==="file:")
+            {
+                OnLoad();
+            }
+            else
+            {
+                GetData("/GetCurrentInfo",{}, function (Data)
+                {
+                    if(Data && Data.result)
+                    {
+                        localStorage["NETWORK"]=Data.NETWORK;
+                        console.log("Default network: "+Data.NETWORK);
+                        OnLoad();
+
+                    }
+                });
+            }
+        }
+
+        function OnLoad()
+        {
+            if(localStorage["NETWORK"])
+                NETWORK=localStorage["NETWORK"];
+
+
+
+            LoadValues();
+            StartWebWallet();
+
+            UpdatesExplorerData();
+            UpdatesAccountsData();
+            setInterval(UpdatesExplorerData,1000);
+            setInterval(UpdatesAccountsData,1000);
+
+            DoStableScroll();
+
+            setTimeout(SetVisibleItemsKeys,500);
+
+            //COMMON MOUSE MOVING
+            window.onmousemove = function(event)
+            {
+                SetDiagramMouseX(event);
+            }
+
+            if(window.location.hash)
+            {
+                var LocationPath=window.location.hash.substr(1);
+                if(LocationPath)
+                {
+                    SelectTab(LocationPath);
+                }
+            }
+        }
+
+        function ChangeNetwork()
+        {
+            if(NETWORK==="TERA-TEST2")
+            {
+                NETWORK="TERA-MAIN";
+            }
+            else
+            {
+                NETWORK="TERA-TEST2";
+            }
+            localStorage["NETWORK"]=NETWORK;
+            StartWebWallet();
+
+            UpdatesExplorerData();
+            UpdatesAccountsData();
+        }
+
+
+        function OnFindServer()
+        {
+            if(!MainServer)
+            {
+                SetStatus("Server not found");
+                delete localStorage["MainServer"];
+                return;
+            }
+
+            localStorage["MainServer"]=JSON.stringify(MainServer);//for use in dapp
+
+            //currency fill
+            FillCurrencyAsync("idAccountCur");
+
+        }
+
+        function LoadValues()
+        {
+            if(LoadValuesByArr(SaveIdArr))
+            {
+                //SetVisibleTab();
+            }
+        }
+        function SaveValues()
+        {
+            SaveValuesByArr(SaveIdArr);
+        }
+
+
+
+        function ViewDapps()
+        {
+            ViewCurrent(DefDapps);
+        }
+
+    </script>
+
+
+    <script>
+        //TAB TAB
+        var TabArr=[{name:"TabAccounts"},{name:"TabSend"},{name:"TabDapps"}, {name:"TabExplorer"},{name:"TabLogo"}];
+        function SelectTab(name)
+        {
+            SetStatus("");
+            $("idCurTabName").value=name;
+            SetVisibleTab();
+            SaveValues();
+            OnSelectTab(name);
+            window.location.hash="#"+name;
+        }
+        function OnSelectTab(name)
+        {
+            if(name==="TabDapps")
+            {
+                ViewDapps();
+            }
+        }
+
+        function SetVisibleTab()
+        {
+            var CurTabName=$("idCurTabName").value;
+            if(!CurTabName || CurTabName==="undefined")
+                CurTabName=TabArr[0].name;
+
+            var str;
+            for (var i=0;i<TabArr.length;i++)
+            {
+                var name=TabArr[i].name;
+                var Item=$(name);
+                if(!Item)
+                    continue;
+                if(CurTabName===name)
+                {
+                    Item.style.display = 'block';
+                    str="current bttab"
+                }
+                else
+                {
+                    Item.style.display = 'none';
+                    str="bttab"
+                }
+
+                var ItemM=$("M"+name);
+                if(ItemM)
+                {
+                    ItemM.className=str;
+                }
+            }
+        }
+    </script>
+
+
+    <script>
+        //CONFIG
+        var FirstAccountsData=1;
+        function UpdatesAccountsData()
+        {
+            GetData("/GetAccountListByKey",{Key:$("idPubKey").value,AllData:FirstAccountsData}, function (Data,responseText)
+            {
+                if(!Data || !Data.result)
+                    return;
+
+                FirstAccountsData=0;
+                NumAccountList=Data.NumAccountList;
+                SetAccountsData(Data,responseText);
+            });
+        }
+
+        function IsPrivateMode()
+        {
+            var PrivKeyStr=$("idPrivKey").value;
+            if(PrivKeyStr  && PrivKeyStr.length===64)
+                return 1;
+            else
+                return 0;
+        }
+
+
+        function SetVisibleItemsKeys(EditFlag)
+        {
+            if(EditFlag)
+            {
+                $("idPrivKeyEdit").value=$("idPrivKey").value;
+            }
+            SetPubKey(EditFlag);
+            var StrNo="none",StrYes="table-row";
+
+            SetVisibleBlock("WalRow1",!EditFlag?StrYes:StrNo);
+
+            SetVisibleBlock("WalRow2",EditFlag?StrYes:StrNo);
+            if($("idShowPubKey").checked)
+                SetVisibleBlock("WalRow3",EditFlag?StrYes:StrNo);
+            else
+                SetVisibleBlock("WalRow3","none");
+            SetVisibleBlock("WalRow4",EditFlag?StrYes:StrNo);
+
+
+            if(!EditFlag)
+            {
+                var Str;
+                if(!$("idPrivKey").value)
+                {
+                    if($("idPubKey").value)
+                        Str="Wallet in read mode. Using Public key.";
+                    else
+                        Str="Key not set. Pls, press edit and generate key ->";
+                }
+                else
+                {
+                    Str="OK. Using Private key.";
+                }
+                $("idPrivKeyButton").innerHTML=Str;
+            }
+
+            if(EditFlag)
+            {
+                $("idPrivKeyEdit").focus();
+            }
+        }
+        function SetPubKey(EditFlag)
+        {
+            var StrPrivKey;
+            if(EditFlag)
+                StrPrivKey=$("idPrivKeyEdit").value.trim();
+            else
+                StrPrivKey=$("idPrivKey").value.trim();
+            if(IsHexStr(StrPrivKey))
+            {
+                if(StrPrivKey.length===64)
+                {
+                    var PrivKey=GetArrFromHex(StrPrivKey);
+                    $("idPubKey").value=GetHexFromArr(SignLib.publicKeyCreate(PrivKey,1));
+                }
+                else
+                {
+                    $("idPubKey").value=StrPrivKey;
+                }
+            }
+            else
+            {
+                $("idPubKey").value="";
+            }
+        }
+
+        function OnPrivKeyNew()
+        {
+            var arr = new Uint8Array(32);
+            window.crypto.getRandomValues(arr);
+            var Str=GetHexFromArr(sha3(arr));
+            $("idPrivKeyEdit").value=Str;
+            SetPubKey(1);
+        }
+        function OnPrivKeyOK()
+        {
+            $("idPrivKey").value=$("idPrivKeyEdit").value;
+            SetVisibleItemsKeys(0);
+            SaveValues();
+        }
+        function OpenWallet()
+        {
+            if($("idPrivKey").value)
+                return;
+
+        }
+
+
+        //Accounts
+        function ViewNewAccount()
+        {
+            SetVisibleBlock("idAccountEdit",1);
+            $("idAccountName").focus();
+        }
+        function OnSetAccount(FlagOK)
+        {
+            if(FlagOK)
+            {
+                if(!$("idPrivKey").value)
+                {
+                    OnPrivKeyNew();
+                    OnPrivKeyOK();
+                }
+
+                var Name=$("idAccountName").value;
+                var Smart=0;
+                var Currency=ParseNum($("idAccountCur").value);
+                if(!Name)
+                {
+                    SetError("Enter the account name.");
+                    return;
+                }
+                SetStatus("Calculate Tx, wait pls ...");
+                SendTrCreateAccWait(Currency,Name,Smart);
+            }
+            SetVisibleBlock("idAccountEdit",0)
+        }
+        function CancelCreateAccount()
+        {
+            SetVisibleBlock("idAccountEdit",0)
+        }
+
+        var CURRENCY,NAME,SMART;
+        function SendTrCreateAccWait(Currency,Name,Smart)
+        {
+            CURRENCY=Currency;
+            NAME=Name;
+            SMART=Smart;
+            setTimeout(function ()
+            {
+                SendTrCreateAcc(CURRENCY,$("idPubKey").value,NAME,0,SMART,0,0);
+            },50)
+        }
+
+
+
+    </script>
+
+
+    <script>
+        //EXPLORER
+        function UpdatesExplorerData()
+        {
+            var WasSendTr=0;
+            for(var key in MapSendTransaction)
+            {
+                var Item=MapSendTransaction[key];
+                if(!Item.WasProcess && !Item.final)
+                {
+                    WasSendTr=1;
+                    break;
+                }
+            }
+
+
+            GetData("GetCurrentInfo",{Diagram:IsVisibleBlock("idStatBlock")?1:0,ArrLog:WasSendTr}, function (Data)
+            {
+                if(!Data || !Data.result)
+                    return;
+
+                SetExplorerData(Data);
+                SetBlockChainConstant(Data);
+
+                var arr=Data.arr;
+                for(var i=0;arr && i<arr.length;i++)
+                {
+                    var ItemServer=arr[i];
+                    var ItemClient=DiagramMap[ItemServer.name];
+                    if(!ItemClient || ItemClient.Extern)
+                        continue;
+
+
+                    ItemClient.arr=ItemServer.arr;
+                    ItemClient.AvgValue=ItemServer.AvgValue;
+                    ItemClient.steptime=ItemServer.steptime;
+                    ItemClient.fillStyle="white";
+
+
+
+                    DrawDiagram(ItemClient);
+                }
+
+            });
+        }
+        var FirstCallDiagram=1;
+        function SetExplorerData(Data)
+        {
+            if(!Data || !Data.result)
+                return;
+            CONFIG_DATA=Data;
+            window.FIRST_TIME_BLOCK=Data.FIRST_TIME_BLOCK;
+            if(FirstCallDiagram)
+            {
+                ViewEnd(DefAccounts,CONFIG_DATA.MaxAccID,1);
+                ViewEnd(DefBlock,CONFIG_DATA.MaxNumBlockDB,1);
+                InitDiagram();
+            }
+            FirstCallDiagram=0;
+
+            var StrVersion=" 0."+Data.VersionNum;
+            var Str="Blockchain height: <B>"+Data.MaxNumBlockDB+"</B>  Current create: <B>"+Data.CurBlockNum+"</B> Wallet ver:"+"<B>"+StrVersion+"</B>";
+            $("idCurrentBlockNum").innerHTML=Str;
+
+
+            SetArrLog(Data.ArrLog);
+
+        }
+
+
+        function SetArrLog(arr)
+        {
+            if(!arr)
+                return;
+
+            for(var i=0;i<arr.length;i++)
+            {
+                var Item=arr[i];
+                if(!Item.final)
+                    continue;
+                var TR=MapSendTransaction[Item.key];
+                if(TR && !TR.WasProcess && Item.final)
+                {
+                    TR.WasProcess=1;
+                    SetStatus(Item.text);
+
+                    if(Item.text.indexOf("Add to blockchain")>=0)
+                    {
+                        if(TR.Run)
+                        {
+                            TR.Run(TR);
+                            TR.Run=undefined;
+                        }
+                    }
+
+
+                    var Account=MapCheckTransaction[Item.key];
+                    if(Account)
+                    {
+                        delete MapCheckTransaction[Item.key];
+                        Account.NextSendTime=0;
+                    }
+
+
+                }
+            }
+            CheckSending();
+        }
+
+    </script>
+
+    <script>
+        //Diagrams
+        var DiagramArr=
+            [
+                {name:"MAX:ALL_NODES",text:"All nodes count",value:0,red:"#1d506b"},
+                {name:"MAX:HASH_RATE_G",text:"HashRate Gh/s",value:0,red:"#286b16"},
+
+
+            ];
+
+
+        function InitDiagram()
+        {
+            InitDiagramByArr(DiagramArr,800);
+        }
+
+        function ViewCounters(This)
+        {
+            var BlockName="idStatBlock";
+            var element=$(BlockName);
+
+            var bVisible=IsVisibleBlock(BlockName);
+            if(!bVisible)
+                MoveUp(element);
+            SetVisibleBlock(BlockName,!bVisible);
+            var ResVisible=IsVisibleBlock(BlockName);
+            if(This && This.className)
+            {
+                This.className=This.className.replace("btpress", "");
+                if(ResVisible)
+                    This.className+=" btpress";
+            }
+        }
+    </script>
+
+
+    <script>
+        //SEND
+        setInterval(CheckSending,1000);
+    </script>
+</head>
+<body>
+<div class="container-fluid">
+<div class="container text-center">
+    <DIV align='left' style="min-width:600px;max-width:800px;height: 97vh; border: 0px solid #bfc1c0;">
+
+        <INPUT id="idCurTabName" value="TabInfo" style="display: none">
+        <table id="TabHeader">
+            <tr>
+                <th><DIV id="MTabAccounts" onclick="SelectTab('TabAccounts')" class="bttab">ACCOUNTS</DIV></th>
+                <th><DIV id="MTabSend" onclick="SelectTab('TabSend')" class="bttab">SEND</DIV></th>
+                <th><DIV id="MTabDapps" onclick="SelectTab('TabDapps')" class="bttab">DAPPS</DIV></th>
+                <th><DIV id="MTabExplorer" onclick="SelectTab('TabExplorer')" class="bttab">EXPLORER</DIV></th>
+            </tr>
+        </table>
+        <table><tr><td><DIV id="idStatus">&nbsp;</DIV></td><td><button id="idNetwork" onclick="ChangeNetwork()"></button></td></tr></table>
+
+
+        <DIV id="TabLogo" style="display: block;">
+            <DIV align='center' style="width: 800px;">
+                <svg version = "1.1"  class="logo"  height = "480px"  width = "480px">
+                    <path transform="scale(2)" d="m116.5,2.58c0,0 114.5,187.5 114.5,187.5c0,0 -52.5,1 -52.5,1c0,0 -28,-44 -28,-44c0,0 -27,44 -27,44c0,0 -53.5,0 -53.5,0c0,0 54,-89 54,-89c0,0 -33.5,-57 -33.5,-57c0,0 26,-42.5 26,-42.5z" fill="rgb(0,0,0)" id="svg_2" stroke="#000000"/>
+                    <path transform="scale(2)" d="m81.6,60.6c0,0 27,44 27,44c0,0 -53,87 -53,87c0,0 -54,-1 -54,-1c0,0 80,-130 80,-130z" fill="rgb(0,0,0)" id="svg_3" stroke="#000000"/>
+                </svg>
+            </DIV>
+        </DIV>
+
+        <DIV id="TabAccounts" style="display: none;">
+            <BR>
+            <table id="idKeys">
+                <tr id="WalRow1">
+                    <td>Wallet:</td>
+                    <td><button id="idPrivKeyButton" onclick="OpenWallet()">Wallet opened: </button></td>
+                    <td><button onclick="SetVisibleItemsKeys(1)" class="btkey bigs">Edit...</button></td>
+                </tr>
+                <tr id="WalRow2" style="display: none">
+                    <td>Private key:</td>
+                    <td><INPUT type="search" id="idPrivKeyEdit" oninput="SetPubKey(1);"></td>
+                    <td>
+                        <button onclick="OnPrivKeyOK()" class="btkey bigs">OK</button>
+                        <button onclick="SetVisibleItemsKeys(0)" class="btkey bigs">Cancel</button>
+                    </td>
+                </tr>
+                <tr id="WalRow3" style="display: none">
+                    <td>Pub key:</td>
+                    <td><INPUT type="search" id="idPubKey" readonly></td>
+                    <td></td>
+
+                </tr>
+                <tr id="WalRow4" style="display: none">
+                    <td></td>
+                    <td colspan="1"><button class="bigs" onclick="OnPrivKeyNew()">Generate key</button>
+                        <INPUT type="checkbox" id="idShowPubKey" oninput="SetVisibleItemsKeys(1)"> Show pub key
+                    <!--Set password:<INPUT class="bigs" type="search" id="idProtKey">-->
+                    </td>
+                    <td></td>
+                </tr>
+            </table>
+            <INPUT type="hidden" id="idPrivKey">
+
+            <BR>
+            <DIV style="padding: 0 0 0 10px">
+
+                <table>
+                    <tr>
+                        <td style="width: 220px">
+                        <button class="bigs" onclick="ConnectWebWallet()"> Reconnect</button>
+                        <button class="bigs" onclick="ViewNewAccount()"> New account...</button>
+                        </td>
+                        <td>
+                            <DIV id="idAccountEdit" style="display: none;">
+                                Public name:<INPUT class="bigs" style="width: 180px" type="string" id="idAccountName">
+                                Currency:
+                                <select size="1" id="idAccountCur" class="bigs" style="width: 80px">
+                                    <option value="0">TERA</option>
+                                </select>
+
+                                <button onclick="OnSetAccount(1)" class="btkey bigs">OK</button>
+                                <button onclick="OnSetAccount(0)" class="btkey bigs">Cancel</button>
+                            </DIV>
+                        </td>
+                    </tr>
+                </table>
+
+            </DIV>
+
+            <table id="grid_accounts" class="grid">
+                <tr>
+                    <th id="(RetHistoryAccount(Item))" class="num">ID</th>
+                    <th id="SUM_TO_STRING(Item.Value)" class="sum bold">Amount</th>
+                    <th id="CurrencyNameItem(Item)" data-name="Currency" class="cur hint">Currency</th>
+                    <th id="Item.Name" data-name="Account name" class="accname hint">Name</th>
+                    <th id="(RetChangeSmart(Item))" data-name="Smart contract (DApp)" class="smart hint">Smart</th>
+                </tr>
+            </table>
+            <B><DIV id="idMyTotalSum"></DIV></B>
+        </DIV>
+
+        <DIV id="TabSend" style="display: none;">
+
+            <DIV id="idSendList"> </DIV>
+            <table class="form_input">
+                <tr>
+                    <td style="min-width: 115px">From account</td>
+                    <td>
+
+                        <select size="1" id="idAccount" oninput="OnEditTransactionFields(); CheckSending();">
+                        </select>
+
+                    </td>
+                </tr>
+                <tr><td>&nbsp;</td><td><DIV id="idNameTo" class="smallbold"></DIV></td></tr>
+                <tr>
+                    <td>Pay to</td>
+                    <td>
+                        <INPUT style="float: left" type="string" id="idTo" value="" oninput="OnEditIdTo()" placeholder="Payee (required)" >
+                    </td>
+                </tr>
+                <tr>
+                    <td>Amount</td>
+                    <td>
+                        <INPUT type="number" id="idSumSend" style="color:#1e21cb" value="" step=0 min=0 max=1000000000 oninput="OnEditTransactionFields()">&nbsp;
+                        <button style="font-family: monospace;" onclick="SetAllSum()"><-</button>
+                        <B id="idCoinName"></B>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Description (optional)</td><td><textarea id="idDescription" rows="4" oninput="CheckLengthAccDesription('idDescription',200);OnEditTransactionFields()"></textarea></td>
+                    <td><DIV id="idAttach"> </DIV></td>
+                </tr>
+                <tr>
+                    <td>
+                    </td>
+                    <td>
+                        <INPUT type="button" onclick="ClearTransaction()" class="bsend bt" value="Clear">
+                        <INPUT type="button" onclick="EditJSONTransaction();SetImg(this,'edit_transaction');" class="bsend bt" value="Edit JSON" id="idDown">
+                        <INPUT type="button" onclick="SendMoneyBefore()" class="bsend bt" id="idSendButton" value="Send" >
+                    </td>
+                </tr>
+            </table>
+            <DIV id="edit_transaction" style="display: none">
+                <textarea id="idTransaction" rows="20" onkeyup="StartEditTransactionJSON()" onchange="StartEditTransactionJSON()"></textarea>
+                <BR>
+                <INPUT type="button" onclick="SignJSON()" class="btdoit bt" value="Sign JSON" id="idSignJSON">
+                <INPUT type="button" onclick="SendMoneyJSON()" class="btdoit bt" value="Send from JSON">
+            </DIV>
+
+            <script>
+                function SetAllSum()
+                {
+                    var Item=MapAccounts[$("idAccount").value];
+                    if(Item)
+                        $("idSumSend").value=FLOAT_FROM_COIN(Item.Value).toStringF();
+                }
+            </script>
+
+        </DIV>
+
+        <DIV id="TabHistory" style="display: none;">
+        </DIV>
+
+
+        <DIV id="TabDapps" style="display: none">
+
+
+            <BR>
+            <DIV id="idPaginationDapps" style="display: block">
+                <!--Category:-->
+                <!--<select size="1" id="idCategory" onchange="ViewCurrent(DefDapps)">-->
+                <!--</select>-->
+                <!--<BR>-->
+
+                <INPUT type="button" onclick="ViewBegin(DefDapps)" class="btdoitm bt" value="|<-">
+                <INPUT type="button" onclick="ViewPrev(DefDapps)" class="btdoit bt" value="<< Prev">
+                <INPUT type="number" id="idViewDappNum" style="text-align: center" value="0" min=0 max=1000000000 onchange="ViewCurrent(DefDapps)">
+                <INPUT type="button" onclick="ViewNext(DefDapps,CONFIG_DATA.MaxDappsID)" class="btdoit bt" value="Next >>">
+                <INPUT type="button" onclick="ViewEnd(DefDapps,CONFIG_DATA.MaxDappsID)" class="btdoitm bt" value="->|">
+
+                <table id="dapps_list" class="grid">
+                    <tr>
+                        <th id="(RetNumDapp(Item))" class="num">ID</th>
+                        <th id="(RetOpenDapps(Item,0,0))" class="dappname">Name</th>
+                        <th id="Item.Description" class="code dappdesc">Description</th>
+                        <th id="(RetCategory(Item))" class="">Category</th>
+
+                        <th id="RetBaseAccount(Item)" class="num">Base Account</th>
+                        <th id="Item.Owner" class="num">Owner</th>
+                        <th id="RetBool(Item.TokenGenerate)" class="bool">Token generate</th>
+                        <!--<th id="Item.ISIN" class="num">ISIN</th>-->
+                        <th id="(RetOpenBlock(Item.BlockNum,1))" class="num">Block Num</th>
+
+                    </tr>
+                </table>
+
+
+            </DIV>
+
+        </DIV>
+
+        <DIV id="TabExplorer" align="center" style="display: none;">
+            <!--<iframe src="/explorer.html" style="width: 100%;height: 100vh"></iframe>-->
+            <DIV id="idCurrentBlockNum"></DIV>
+
+            <button onclick="ViewCurrent(DefAccounts,1,this);" class="btview">Accounts</button>
+            <button onclick="ViewCurrent(DefBlock,1,this)" class="btview">Blocks & Tr</button>
+            <!--<button onclick="ViewCurrent(DefBlock,1,this)" class="btview">DApps</button>-->
+            <button onclick="ViewCounters(this)" class="btview">Counters</button>
+
+            <DIV>
+                <DIV id="idPaginationAccount" style="display: none">
+                    <BR>
+                    <button onclick="ViewBegin(DefAccounts)" class="btnav">|<-</button>
+                    <button onclick="ViewPrev(DefAccounts)" class="btnav"><< Prev</button>
+                    <INPUT type="number" class="pag_num" id="idViewAccountNum" style="text-align: center" value="0" min=0 onchange="ViewCurrent(DefAccounts)">
+                    <button onclick="ViewNext(DefAccounts,CONFIG_DATA.MaxAccID)" class="btnav">Next >></button>
+                    <button onclick="ViewEnd(DefAccounts,CONFIG_DATA.MaxAccID)" class="btnav">->|</button>
+
+                    <table id="explorer_accounts" class="grid">
+                        <tr>
+                            <th id="(RetHistoryAccount(Item))" class="num">ID</th>
+                            <th id="SUM_TO_STRING(Item.Value)" class="sum">Amount</th>
+                            <th id="CurrencyNameItem(Item)" class="cur">Cur</th>
+                            <th id="Item.Name" class="accname">Name</th>
+                            <th id="Item.PubKeyStr" class="hash pubkey">PubKey</th>
+                            <th id="Item.Value.OperationID" class="num">Operation</th>
+                            <th id="Item.Value.Smart" class="num">Smart</th>
+                            <th id="(RetOpenBlock(Item.BlockNumCreate,1))" class="num">Block Num</th>
+                        </tr>
+                    </table>
+
+                </DIV>
+
+
+
+                <DIV id="idPaginationBlock" style="display: none">
+                    <BR>
+                    <DIV>Blocks<BR></DIV>
+                    <button onclick="ViewBegin(DefBlock)" class="btnav">|<-</button>
+                    <button onclick="ViewPrev(DefBlock)" class="btnav"><< Prev</button>
+                    <INPUT type="number" class="pag_num" id="idViewBlockNum" style="text-align: center" value="0" min=0 onchange="ViewCurrent(DefBlock)">
+                    <button onclick="ViewNext(DefBlock,CONFIG_DATA.MaxNumBlockDB)" class="btnav">Next >></button>
+                    <button onclick="ViewEnd(DefBlock,CONFIG_DATA.MaxNumBlockDB)" class="btnav">->|</button>
+
+                    <table id="explorer_blocks" class="grid">
+                        <tr>
+                            <th id="(RetOpenBlock(Item.BlockNum,Item.TrDataLen))" class="num">Num</th>
+                            <th id="(DateFromBlock(Item.BlockNum,1))" class="date">Date</th>
+                            <th id="GetHexFromArr(Item.TreeHash)" class="hash">Data Hash</th>
+                            <th id="GetHexFromArr(Item.PowHash)" class="hash">PowHash</th>
+                            <th id="GetHexFromArr(Item.Hash)" class="hash">Block Hash</th>
+                            <th id="Item.TrDataLen" class="num">Bytes</th>
+                            <th id="Item.Power" class="num">Pow</th>
+                            <th id="Item.Miner" class="num">Miner</th>
+                        </tr>
+                    </table>
+                </DIV>
+
+                <DIV id="idStatBlock" style="display: none">
+                    <BR>
+
+                    <DIV id="diagr_content" align='center'>
+                        <DIV id="diargams" align='center'>
+                        </DIV>
+                    </DIV>
+
+                </DIV>
+
+            </DIV>
+            <BR>
+
+        </DIV>
+
+
+
+
+    </DIV>
+
+
+
+    <DIV id="idBlockOnSend" style="display: none">
+        <DIV align="center">
+            Send <B id="idOnSendText"></B>
+            <BR>
+            <button onclick="SendMoney2()" id="idBtOnSend" class="radius">Send</button>
+            <button onclick='SetVisibleBlock("idBlockOnSend",0);' class="radius">Cancel</button>
+
+            <DIV align="left">
+                <DIV id="idCheckOnSend"><input type="checkbox" id="idWhiteOnSend"/> Add this account to white list</DIV>
+            </DIV>
+        </DIV>
+    </DIV>
+
+    <DIV id="idStableScroll" align='center'>
+        <A href="https://terafoundation.org/">Web</A>
+        <A href="https://bitcointalk.org/index.php?topic=4573801.0">ANN</A>
+        <A href="https://twitter.com/terafoundation">Twitter</A>
+        <A href="https://web.telegram.org/#/im?p=@terafoundation">Telegram</A>
+        <A href="https://discord.gg/CvwrbeG">Discord</A>
+        <!--<A href="https://github.com/terafoundation/wallet">GitHub</A>-->
+        <!--progr76@gmail.com-->
+    </DIV>
+
+</DIV>
+</DIV>
+</body>
+</html>
+
+

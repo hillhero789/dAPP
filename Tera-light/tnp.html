@@ -1,0 +1,31 @@
+<script>
+var TotalCount=0;
+ALL_ACCOUNTS=1;
+window.addEventListener('Init',function ()
+{
+    CheckInstall();
+    UpdateInfo();
+    $("idApp").innerHTML=""+SMART.Num+"."+SMART.Name;
+})
+window.addEventListener('UpdateInfo',UpdateInfo);
+
+function UpdateInfo()
+{
+    var BaseValue=FLOAT_FROM_COIN(BASE_ACCOUNT.Value);
+    alert(BaseValue);
+    $("idClicker").disabled=(BaseValue<1);
+}
+</script>
+
+<DIV class="item">
+<DIV id="idApp" style="width: 100%;height: 40px;font-size: x-large">Clicker</DIV>
+User:
+<select size="1" id="idUser" style="width: 250px" class="" onchange="SaveValues()">
+    <option value="0">User1</option>
+</select>
+<BR><BR>
+<DIV class="win" style="height: 32px;font-size: x-large;" id="idResult"></DIV>
+
+
+<button class="radius click" id="idClicker" onclick="SendClick()" >CLICK</button>
+</DIV>

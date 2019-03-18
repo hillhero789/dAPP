@@ -1,0 +1,122 @@
+<script>
+    var SaveIdArr = ["idUser"];
+    var TotalCount = 0;
+    ALL_ACCOUNTS = 1;
+    window.addEventListener('Init', function() {
+        CheckInstall();
+        UpdateInfo();
+        $("idApp").innerHTML = "" + SMART.Num + "." + SMART.Name;
+    })
+    window.addEventListener('UpdateInfo', UpdateInfo);
+
+    function UpdateInfo() {
+        var BaseValue = FLOAT_FROM_COIN(BASE_ACCOUNT.Value);
+        //$("idClicker").disabled=(BaseValue<1);
+    }
+
+    function SendClick() {
+        var pwd = $("idUser").value;
+        SendCall(BASE_ACCOUNT.Num, "setPwd", {
+            From: AccFrom
+        }, AccFrom);
+    }
+</script>
+
+<script>
+    function SaveValues() {
+        SaveToStorageByArr(SaveIdArr);
+    }
+
+    function LoadValues() {
+        LoadFromStorageByArr(SaveIdArr, function() {
+            UpdateFillUser();
+        });
+    }
+
+    function UpdateFillUser() {
+        var Arr = [];
+        for (var i = 0; i < USER_ACCOUNT.length; i++) {
+            var Item = USER_ACCOUNT[i];
+            var Value = {
+                value: Item.Num,
+                text: Item.Num + "." + Item.Name + "  " + SUM_TO_STRING(Item.Value, Item.Currency, 1)
+            };
+            Arr.push(Value);
+        }
+        FillSelect("idUser", Arr);
+    }
+    window.addEventListener('Init', function() {
+        LoadValues();
+    });
+    window.addEventListener('UpdateInfo', UpdateFillUser);
+</script>
+
+
+<style type="text/css">
+    body {
+        background-color: #01130D;
+        color: white;
+    }
+    
+    .item {
+        z-index: 1000;
+        position: fixed;
+        top: 20%;
+        left: 40%;
+        height: 350px;
+        width: 350px;
+        padding: 5px;
+        text-align: center;
+        border-radius: 4px;
+        background-color: #4B8E78;
+        border: 1px solid #888;
+    }
+    
+    .radius {
+        border-radius: 4px;
+        max-height: 34px;
+        height: 34px;
+    }
+    
+    button.radius {
+        color: white;
+        width: 100px;
+        border-color: #888;
+    }
+    
+    .click {
+        background-color: #955535;
+    }
+    
+    .click[disabled] {
+        background-color: #9b9b9b;
+    }
+    
+    input.radius {
+        height: 28px;
+    }
+    
+    .win {
+        color: #ffb234;
+    }
+</style>
+
+<DIV class="item">
+    <DIV id="idApp" style="width: 100%;height: 50px;font-size: x-large">2FA</DIV>
+    User:
+    <select size="1" id="idUser" style="width: 250px" class="" onchange="SaveValues()">
+        <option value="0">User1</option>
+    </select>
+    <BR>
+    <BR>
+    <DIV class="win" style="height: 32px;font-size: x-large;" id="idResult"></DIV>
+
+    Password:&nbsp;<input id="idPwd" type="password" /><br><br>Amount:&nbsp;&nbsp;&nbsp;<input id="idAmount" type="text" /><br><br>Send to:&nbsp;&nbsp;&nbsp;&nbsp;<input id="idTonum" type="text" /><br><br>
+    <button class="radius click" id="idClicker" onclick="setPwd()">CLICK</button>
+    <BR>
+    <DIV style="text-align: left;">
+        <BR>1. Set you password, and you can
+        <BR>2. The number of transactions is limited
+        <BR>
+    </DIV>
+</DIV>

@@ -12,7 +12,7 @@ function rewardTera(Params)
 
     if(context.FromNum)//money for seller
     {
-        Move(AccNum,context.FromNum,COIN_FROM_FLOAT(Reward),"Click");
+        Move(AccNum,context.FromNum,COIN_FROM_FLOAT(Reward),"Tetris");
     }
 
     Event({Amount:context.Value});
