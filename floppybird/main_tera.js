@@ -18,9 +18,11 @@ var flyArea = $("#flyarea").height();
 var score = 0;
 var highscore = 0;
 
-var pipeheight = 90;
-var pipewidth = 52;
+var pipeheight = 85;
+var pipeheightArr = new Array(); //hughchiu, pipeheightArr follows pipes.
 var pipes = new Array();
+var pipewidth = 52;
+
 
 var replayclickable = false;
 
@@ -38,7 +40,7 @@ var loopGameloop;
 var loopPipeloop;
 
 $(document).ready(function() {
-    //get the highscore
+    pipeheight = 200; //hughchiu debug
     var savedscore = getCookie("highscore");
     if (savedscore != "")
         highscore = parseInt(savedscore);
@@ -54,6 +56,7 @@ function getCookie(cname) {
 function setCookie(cname, cvalue, exdays) {}
 
 function showSplash() {
+    removeEvents(); //hughchiu
     currentstate = states.SplashScreen;
 
     //set the defaults (again)
@@ -72,21 +75,25 @@ function showSplash() {
     //clear out all the pipes if there are any
     $(".pipe").remove();
     pipes = new Array();
+    pipeheightArr = new Array(); //hughchiu
 
     //make everything animated again
     $(".animated").css('animation-play-state', 'running');
     $(".animated").css('-webkit-animation-play-state', 'running');
 
     //fade in the splash
-    $("#splash").transition({ opacity: 1 }, 2000, 'ease');
+    //$("#splash").transition({ opacity: 1 }, 2000, 'ease');//hughchiu
+    $("#gameInfo").transition({ opacity: 1 }, 2000, 'ease'); //hughchiu
 }
 
 function startGame() {
     currentstate = states.GameScreen;
-
-    //fade out the splash
-    $("#splash").stop();
-    $("#splash").transition({ opacity: 0 }, 500, 'ease');
+    pipeheight = 200; //hughchiu
+    //fade out the splash//hughchiu
+    //$("#splash").stop();//hughchiu
+    //$("#splash").transition({ opacity: 0 }, 500, 'ease');//hughchiu
+    $("#gameInfo").stop(); //hughchiu
+    $("#gameInfo").transition({ opacity: 0 }, 500, 'ease'); //hughchiu
 
     //update the big score
     setBigScore();
@@ -162,12 +169,13 @@ function gameloop() {
 
     //determine the bounding box of the next pipes inner area
     var nextpipe = pipes[0];
+    var pipeheighttmp = pipeheightArr[0]; //hughchiu
     var nextpipeupper = nextpipe.children(".pipe_upper");
 
     var pipetop = nextpipeupper.offset().top + nextpipeupper.height();
     var pipeleft = nextpipeupper.offset().left - 2; // for some reason it starts at the inner pipes offset, not the outer pipes.
     var piperight = pipeleft + pipewidth;
-    var pipebottom = pipetop + pipeheight;
+    var pipebottom = pipetop + pipeheighttmp; //pipeheight;hughchiu
 
     if (debugmode) {
         var boundingbox = $("#pipebox");
@@ -195,7 +203,7 @@ function gameloop() {
     if (boxleft > piperight) {
         //yes, remove it
         pipes.splice(0, 1);
-
+        pipeheightArr.splice(0, 1); //hughchiu  
         //and score a point
         playerScore();
     }
@@ -214,15 +222,24 @@ $(document).keydown(function(e) {
 });
 
 //Handle mouse down OR touch start
-if ("ontouchstart" in window)
-    $(document).on("touchstart", screenClick);
-else
-    $(document).on("mousedown", screenClick);
+function bindEvents() { //hughchiu
+    if ("ontouchstart" in window)
+        $(document).on("touchstart", screenClick);
+    else
+        $(document).on("mousedown", screenClick);
+    $(document).off("dblclick");
+}
+
+function removeEvents() { //hughchiu
+    $(document).off("touchstart");
+    $(document).off("mousedown");
+}
 
 function screenClick() {
     if (currentstate == states.GameScreen) {
         playerJump();
     } else if (currentstate == states.SplashScreen) {
+        //if (event.target.nodeName != "BUTTON") //hughchiu
         startGame();
     }
 }
@@ -401,6 +418,10 @@ function playerScore() {
 }
 
 function updatePipes() {
+    if (pipeheight > 85) //hughchiu
+        pipeheight -= 20;
+    else
+        pipeheight = 85;
     //Do any pipes need removal?
     $(".pipe").filter(function() { return $(this).position().left <= -100; }).remove()
 
@@ -412,6 +433,7 @@ function updatePipes() {
     var newpipe = $('<div class="pipe animated"><div class="pipe_upper" style="height: ' + topheight + 'px;"></div><div class="pipe_lower" style="height: ' + bottomheight + 'px;"></div></div>');
     $("#flyarea").append(newpipe);
     pipes.push(newpipe);
+    pipeheightArr.push(pipeheight); //hughchiu
 }
 
 var isIncompatible = {

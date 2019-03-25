@@ -18,11 +18,9 @@ var flyArea = $("#flyarea").height();
 var score = 0;
 var highscore = 0;
 
-var pipeheight = 85;
-var pipeheightArr = new Array(); //hughchiu, pipeheightArr follows pipes.
-var pipes = new Array();
+var pipeheight = 90;
 var pipewidth = 52;
-
+var pipes = new Array();
 
 var replayclickable = false;
 
@@ -39,16 +37,7 @@ buzz.all().setVolume(volume);
 var loopGameloop;
 var loopPipeloop;
 
-
-
 $(document).ready(function() {
-    //pipeheight = randomNum(); //hughchiu debug
-    //debugmode = true;
-    if (window.location.search == "?debug")
-        debugmode = true;
-    if (window.location.search == "?easy")
-        pipeheight = 200;
-
     //get the highscore
     var savedscore = getCookie("highscore");
     if (savedscore != "")
@@ -59,24 +48,12 @@ $(document).ready(function() {
 });
 
 function getCookie(cname) {
-    var name = cname + "=";
-    var ca = document.cookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-        var c = ca[i].trim();
-        if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
-    }
     return "";
 }
 
-function setCookie(cname, cvalue, exdays) {
-    var d = new Date();
-    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-    var expires = "expires=" + d.toGMTString();
-    document.cookie = cname + "=" + cvalue + "; " + expires;
-}
+function setCookie(cname, cvalue, exdays) {}
 
 function showSplash() {
-    removeEvents(); //hughchiu
     currentstate = states.SplashScreen;
 
     //set the defaults (again)
@@ -95,25 +72,21 @@ function showSplash() {
     //clear out all the pipes if there are any
     $(".pipe").remove();
     pipes = new Array();
-    pipeheightArr = new Array(); //hughchiu
 
     //make everything animated again
     $(".animated").css('animation-play-state', 'running');
     $(".animated").css('-webkit-animation-play-state', 'running');
 
     //fade in the splash
-    //$("#splash").transition({ opacity: 1 }, 2000, 'ease');//hughchiu
-    $("#gameInfo").transition({ opacity: 1 }, 2000, 'ease'); //hughchiu
+    $("#splash").transition({ opacity: 1 }, 2000, 'ease');
 }
 
 function startGame() {
     currentstate = states.GameScreen;
-    //pipeheight = randomNum(); //hughchiu
-    //fade out the splash//hughchiu
-    //$("#splash").stop();//hughchiu
-    //$("#splash").transition({ opacity: 0 }, 500, 'ease');//hughchiu
-    $("#gameInfo").stop(); //hughchiu
-    $("#gameInfo").transition({ opacity: 0 }, 500, 'ease'); //hughchiu
+
+    //fade out the splash
+    $("#splash").stop();
+    $("#splash").transition({ opacity: 0 }, 500, 'ease');
 
     //update the big score
     setBigScore();
@@ -189,19 +162,18 @@ function gameloop() {
 
     //determine the bounding box of the next pipes inner area
     var nextpipe = pipes[0];
-    var pipeheighttmp = pipeheightArr[0]; //hughchiu
     var nextpipeupper = nextpipe.children(".pipe_upper");
 
     var pipetop = nextpipeupper.offset().top + nextpipeupper.height();
     var pipeleft = nextpipeupper.offset().left - 2; // for some reason it starts at the inner pipes offset, not the outer pipes.
     var piperight = pipeleft + pipewidth;
-    var pipebottom = pipetop + pipeheighttmp; //pipeheight;hughchiu
+    var pipebottom = pipetop + pipeheight;
 
     if (debugmode) {
         var boundingbox = $("#pipebox");
         boundingbox.css('left', pipeleft);
         boundingbox.css('top', pipetop);
-        boundingbox.css('height', pipeheighttmp); //pipeheight hughhciu
+        boundingbox.css('height', pipeheight);
         boundingbox.css('width', pipewidth);
     }
 
@@ -218,11 +190,12 @@ function gameloop() {
         }
     }
 
+
     //have we passed the imminent danger?
     if (boxleft > piperight) {
         //yes, remove it
         pipes.splice(0, 1);
-        pipeheightArr.splice(0, 1); //hughchiu  
+
         //and score a point
         playerScore();
     }
@@ -241,24 +214,15 @@ $(document).keydown(function(e) {
 });
 
 //Handle mouse down OR touch start
-function bindEvents() { //hughchiu
-    if ("ontouchstart" in window)
-        $(document).on("touchstart", screenClick);
-    else
-        $(document).on("mousedown", screenClick);
-    $(document).off("dblclick");
-}
-
-function removeEvents() { //hughchiu
-    $(document).off("touchstart");
-    $(document).off("mousedown");
-}
+if ("ontouchstart" in window)
+    $(document).on("touchstart", screenClick);
+else
+    $(document).on("mousedown", screenClick);
 
 function screenClick() {
     if (currentstate == states.GameScreen) {
         playerJump();
     } else if (currentstate == states.SplashScreen) {
-        //if (event.target.nodeName != "BUTTON") //hughchiu
         startGame();
     }
 }
@@ -270,6 +234,12 @@ function playerJump() {
     soundJump.play();
 }
 
+function getImgSrc(num) {
+    var bigImgSrc = ["/file/1882304/0", "/file/1882330/0", "/file/1882355/0", "/file/1882387/0", "/file/1882413/0", "/file/1882433/0", "/file/1882462/0", "/file/1882486/0", "/file/1882508/0", "/file/1882540/0"];
+    var smallImgSrc = ["src1", "src2", "src3"];
+    return bigImgSrc[num];
+}
+
 function setBigScore(erase) {
     var elemscore = $("#bigscore");
     elemscore.empty();
@@ -279,7 +249,7 @@ function setBigScore(erase) {
 
     var digits = score.toString().split('');
     for (var i = 0; i < digits.length; i++)
-        elemscore.append("<img src='assets/font_big_" + digits[i] + ".png' alt='" + digits[i] + "'>");
+        elemscore.append("<img src='" + getImgSrc(digits[i]) + "' alt='" + digits[i] + "'>");
 }
 
 function setSmallScore() {
@@ -288,7 +258,7 @@ function setSmallScore() {
 
     var digits = score.toString().split('');
     for (var i = 0; i < digits.length; i++)
-        elemscore.append("<img src='assets/font_small_" + digits[i] + ".png' alt='" + digits[i] + "'>");
+        elemscore.append("<img src='" + getImgSrc(digits[i]) + "' alt='" + digits[i] + "'>");
 }
 
 function setHighScore() {
@@ -297,7 +267,7 @@ function setHighScore() {
 
     var digits = highscore.toString().split('');
     for (var i = 0; i < digits.length; i++)
-        elemscore.append("<img src='assets/font_small_" + digits[i] + ".png' alt='" + digits[i] + "'>");
+        elemscore.append("<img src='" + getImgSrc(digits[i]) + "' alt='" + digits[i] + "'>");
 }
 
 function setMedal() {
@@ -309,15 +279,15 @@ function setMedal() {
         return false;
 
     if (score >= 10)
-        medal = "bronze";
+        medal = "/file/1882660/0";
     if (score >= 20)
-        medal = "silver";
+        medal = "/file/1882705/0";
     if (score >= 30)
-        medal = "gold";
+        medal = "/file/1882745/0";
     if (score >= 40)
-        medal = "platinum";
+        medal = "/file/1882794/0";
 
-    elemmedal.append('<img src="assets/medal_' + medal + '.png" alt="' + medal + '">');
+    elemmedal.append('<img src="' + medal + '">');
 
     //signal that a medal has been won
     return true;
@@ -355,7 +325,7 @@ function playerDead() {
             });
         });
     }
-    //alert("hughchiu: your score" + score);
+    //hughhiu add some code here to act with smart contract
 }
 
 function showScore() {
@@ -431,9 +401,10 @@ function playerScore() {
 }
 
 function updatePipes() {
-    pipeheight = randomNum(); //hughchiu
     //Do any pipes need removal?
-    $(".pipe").filter(function() { return $(this).position().left <= -100; }).remove() //add a new pipe (top height + bottom height  + pipeheight == flyArea) and put it in our tracker
+    $(".pipe").filter(function() { return $(this).position().left <= -100; }).remove()
+
+    //add a new pipe (top height + bottom height  + pipeheight == flyArea) and put it in our tracker
     var padding = 80;
     var constraint = flyArea - pipeheight - (padding * 2); //double padding (for top and bottom)
     var topheight = Math.floor((Math.random() * constraint) + padding); //add lower padding
@@ -441,11 +412,6 @@ function updatePipes() {
     var newpipe = $('<div class="pipe animated"><div class="pipe_upper" style="height: ' + topheight + 'px;"></div><div class="pipe_lower" style="height: ' + bottomheight + 'px;"></div></div>');
     $("#flyarea").append(newpipe);
     pipes.push(newpipe);
-    pipeheightArr.push(pipeheight); //hughchiu
-}
-
-function randomNum() { //hughchiu get random number from 85 to 120 
-    return parseInt(Math.random() * (105 - 80 + 1) + 80, 10);
 }
 
 var isIncompatible = {
