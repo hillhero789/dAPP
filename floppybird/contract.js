@@ -17,18 +17,11 @@
 
 竞技：
 
-
-
-
-
-
-*/
-
-
-/*
 StateFormat:
 {
-    adv: uint,          //推荐人必须比自己的账号小200
+    PrevNum:uint,       //前一个账号
+    NextNum:uint,       //后一个账号
+    adv: uint,          //推荐人必须比自己的账号的早七天
     highScore: uint,    //永久记录历史最高分
     curScore:uint,      //当局成绩
     gameMode: byte,     //对战模式0，群殴模式1
@@ -36,11 +29,28 @@ StateFormat:
     VSNum: uint,        //对站方账号
     joinBlock:uint,     //加入时的block号码，以便确认是否群殴游戏模式下是否能退出游戏
     curBlock:uint,      //只有合约账号使用该字段，用于记录当前合约时间，保证每天一局
+    HTMLBlock:uint,     //用于更换界面
+    HTMLTr:uint16,      //用于更换界面
 }
 */
+//{PrevNum:uint,NextNum:uint,adv:uint,highScore:uint,curScore:uint,gameMode: byte,betCoins: uint,VSNum: uint,joinBlock:uint,curBlock:uint,HTMLBlock:uint,HTMLTr:uint16}
 
 
 function OnGet() { //set new html page
+    SetNewPage();
+}
+
+function OnDeleteSmart() {
+    var myState = ReadState(context.Account.Num);
+    if (!myState.gameFinish) { //如果游戏没有结束禁止退出
+        throw "You can only delete this smart contract after game over";
+        Delete(context.Account.Num);
+    }
+}
+
+"public"
+
+function SetNewPage() {
     var BaseNum = context.Smart.Account;
     if (context.FromNum === context.Smart.Owner && context.Account.Num === BaseNum &&
         context.Description.substr(0, 1) === "{") {
@@ -54,19 +64,44 @@ function OnGet() { //set new html page
     }
 }
 
-function OnDeleteSmart() {
-    var myState = ReadState(context.Account.Num);
-    if (!myState.gameFinish)
-        throw "You can only delete this smart contract after game over";
+"public"
 
+function Delete(CurItem) {
+    if (CurItem.PrevNum) {
+        var PrevItem = ReadState(CurItem.PrevNum);
+        PrevItem.NextNum = CurItem.NextNum;
+        WriteState(PrevItem);
+    }
+    if (CurItem.NextNum) {
+        var NextItem = ReadState(CurItem.NextNum);
+        NextItem.PrevNum = CurItem.PrevNum;
+        WriteState(NextItem);
+    }
+
+    CurItem.PrevNum = 0;
+    CurItem.NextNum = 0;
 }
 
 "public"
 
-function reward(Params) {
+function AddToHead(NewItem) {
+    var HeadNum = context.Smart.Account;
+    var HeadItem = ReadState(HeadNum);
+    if (HeadItem.NextNum !== NewItem.Num) {
+        Delete(NewItem);
 
-}
+        if (HeadItem.NextNum) {
+            var NextItem = ReadState(HeadItem.NextNum);
+            NextItem.PrevNum = NewItem.Num;
+            WriteState(NextItem);
 
-function getMyHighScore() {
+            NewItem.NextNum = HeadItem.NextNum;
+        }
 
+        HeadItem.NextNum = NewItem.Num;
+        WriteState(HeadItem);
+
+        NewItem.PrevNum = HeadNum;
+    }
+    WriteState(NewItem);
 }

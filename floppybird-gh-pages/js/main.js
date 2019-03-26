@@ -39,8 +39,6 @@ buzz.all().setVolume(volume);
 var loopGameloop;
 var loopPipeloop;
 
-
-
 $(document).ready(function() {
     //pipeheight = randomNum(); //hughchiu debug
     //debugmode = true;
@@ -446,6 +444,14 @@ function updatePipes() {
 
 function randomNum() { //hughchiu get random number from 85 to 120 
     return parseInt(Math.random() * (105 - 80 + 1) + 80, 10);
+}
+
+function listGameStatus() { //hughchiu
+
+}
+
+function updateGame() { //hughchiu
+
 }
 
 var isIncompatible = {

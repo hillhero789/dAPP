@@ -1,0 +1,36 @@
+<script>
+    //{PreNum:uint,NextNum:uint,Score:uint}
+    function listAllData(itemNum) {
+        var nextItemNum = 0;
+        GetAccountList({
+            StartNum: itemNum,
+            CountNum: 1
+        }, function(Err, Arr) {
+            if (!Err) {
+                console.log("Arr[0].SmartState:");
+                console.log(Arr[0].SmartState);
+                nextItemNum = Arr[0].SmartState.NextNum;
+                console.log("nextItemNum:" + nextItemNum);
+                if (nextItemNum)
+                    listAllData(nextItemNum);
+            }
+
+        });
+    }
+
+    function CallAddMe() {
+        var randNumber = Math.random() * 1000;
+        console.log("USER_ACCOUNT:");
+        console.log(USER_ACCOUNT);
+        SendCall(0, "AddMe", {
+            Score: randNumber
+        }, USER_ACCOUNT[0].Num);
+    }
+
+    window.OnEvent = function(Data) {
+        console.log(Data);
+        console.log("listAllData:");
+        listAllData(BASE_ACCOUNT.Num);
+    };
+</script>
+<button onclick="CallAddMe()">add me</button>

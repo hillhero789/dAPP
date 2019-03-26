@@ -1,4 +1,4 @@
-{ PrevNum: uint, NextNum: uint, State: byte, InfoBlock: uint, InfoTr: uint16, HTMLBlock: uint, HTMLTr: uint16 }
+//{ PrevNum: uint, NextNum: uint, State: byte, InfoBlock: uint, InfoTr: uint16, HTMLBlock: uint, HTMLTr: uint16 }
 
 function GetLib() {
     return require(8); //List-lib

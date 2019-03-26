@@ -1,0 +1,25 @@
+1、SendCall(BASE_ACCOUNT.Num,"Click",{From:AccFrom},AccFrom);
+        得到的区块如下：参数Params被加入到区块中了。
+        {
+        "Type": 135,
+        "Account": 21,
+        "MethodName": "Click",
+        "Params": "{"From":"59"}",
+        "FromNum": 59,
+        "OperationID": 2486,
+        "Reserve": "00000000000000000000",
+        "Sign": "CAD43C913553859373208A7FE11A2FDDC9D25253E51E1E202614A5525EB5C26C3B91EF4F93FC5934CAF67C9CF161AA524ACDF990B81FA456E219971D144CC83F"
+        }
+
+2、DappBlockFile(Blocknum, Tr, function(Err, Data) {});
+    可以获得区块的数据。
+
+3、区块可以有多个transcation
+
+4、GetAccountList({StartNum: AccNum,CountNum: 1}, function(Err, Arr) {
+    Arr[0].SmartState //即可获取StateFormat数据
+    });
+    示例：testnet dapp 137
+
+5、客户端可以访问 USER_ACCOUNT，BASE_ACCOUNT 获取账号数据
+
