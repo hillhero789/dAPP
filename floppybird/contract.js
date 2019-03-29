@@ -22,19 +22,19 @@ StateFormat:
     PrevNum:uint,       //前一个账号
     NextNum:uint,       //后一个账号
     adv: uint,          //推荐人必须比自己的账号的早七天
-    highScore: uint,    //永久记录历史最高分
+    highScore: uint,    //永久记录历史最高分，仅合约使用
     curScore:uint,      //当局成绩
     gameMode: byte,     //对战模式0，群殴模式1
     betCoins: uint,     //对赌金额，仅适用于对战模式
     VSNum: uint,        //对站方账号
     joinBlock:uint,     //加入时的block号码，以便确认是否群殴游戏模式下是否能退出游戏
+    gameTimes:uint32,   //一段时间内玩的次数
     curBlock:uint,      //只有合约账号使用该字段，用于记录当前合约时间，保证每天一局
     HTMLBlock:uint,     //用于更换界面
     HTMLTr:uint16,      //用于更换界面
 }
 */
-//{PrevNum:uint,NextNum:uint,adv:uint,highScore:uint,curScore:uint,gameMode: byte,betCoins: uint,VSNum: uint,joinBlock:uint,curBlock:uint,HTMLBlock:uint,HTMLTr:uint16}
-
+//{PrevNum:uint,NextNum:uint,adv:uint,highScore:uint,curScore:uint,gameMode: byte,betCoins: uint,VSNum: uint,joinBlock:uint,gameTimes:uint32,curBlock:uint,HTMLBlock:uint,HTMLTr:uint16}
 
 function OnGet() { //set new html page
     SetNewPage();

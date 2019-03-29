@@ -1,36 +1,207 @@
+ User:
+<select size="1" id="idUser" style="width: 250px" class="" onchange="SaveValues()">
+    <option value="0">User1</option>
+</select>
+<button onclick="gameOver()">game over send score</button>
+<button onclick="updateGame()">update game</button>
+<button onclick="payAndStartGame()">转账并开始游戏</button>
+<button onclick="listPlayersScore()">list all</button>
+<div id="idInfo2"> </div>
+
 <script>
     //{PreNum:uint,NextNum:uint,Score:uint}
-    function listAllData(itemNum) {
-        var nextItemNum = 0;
+    var allScoreArr = new Array(); //{id:number,name:string,score:number}
+    var endBlock = 0; //当局游戏结束区块号
+    var playersArr = new Array(); //参与当局游戏的所有人 {id:number,name:string,score:number}
+    var smartCurBlock = 0;
+    var GAMEINTERVAL = 120;
+    var currentChainBlock = 0;
+
+    function payAndStartGame() {
+        //转账100并开始游戏
+    }
+
+    function updateGame() {
+        /*
+        判断当前局是否应该已经结束：获取合约curBlock以及当前TERA的最新CurBlockNum（用GetInfo），如果CurBlockNum > curBlock+24*3600 则进行reward，否则继续游戏。
+        reward：对获取最新的 排名，按照规则，奖励。
+        列出当前局的排名（如有）
+        */
+        GetInfo(function(Err, Data) {
+            if (!Err) {
+                currentChainBlock = Data.CurBlockNum;
+                console.log(currentChainBlock);
+                GetAccountList({
+                    StartNum: BASE_ACCOUNT.Num,
+                    CountNum: 1
+                }, function(Err, Arr) {
+                    if (!Err) {
+                        console.log("Arr:");
+                        console.log(Arr);
+                        smartCurBlock = Arr[0].SmartState.curBlock;
+                        endBlock = smartCurBlock + GAMEINTERVAL;
+                        console.log("endBlock:" + endBlock);
+                        updateDblList(BASE_ACCOUNT.Num);
+                        if (currentChainBlock >= endBlock) { //表明当前局已经结束，需更新合约的 curBlock
+                            console.log("need to refresh smart curBlock, currentChainBlock is:" + currentChainBlock);
+                            SendCall(0, "UpdateSmartCurBlock", {}, $("idUser").value);
+                            updateDblList(BASE_ACCOUNT.Num);
+                            sendReward(); //当前局已经结束，需发放奖励   //需考虑互斥问题，防止多个用户同时发起 reward
+                        }
+                    }
+                });
+            }
+        });
+        listPlayersScore();
+    }
+
+
+    function sendReward() {
+        //按照规则，获取所有joinBlock在curBlock到curBlock + GAMEINTERVAL 以内的参与者，将joinBlock不再此之内的所有参与者清除 Delete
+
+    }
+
+    function gameOver() {
+        /*
+        游戏结束时，将得分上链，包括最高分
+        判断是否还在当前局内，如否，则开新局
+        gameTimes ++
+        更新joinBlock
+        将自己加入到双向链表中
+        */
+        var AccFrom = $("idUser").value;
+        var myScore = Math.random() * 1000;
+        SendCall(0, "AddMe", {
+            curScore: myScore,
+            joinBlock: currentChainBlock,
+        }, AccFrom);
+    }
+
+    function updateDblList(itemNum) { //更新双向链表,删除局外节点，
         GetAccountList({
             StartNum: itemNum,
             CountNum: 1
         }, function(Err, Arr) {
+            var nextItemNum = 0;
             if (!Err) {
-                console.log("Arr[0].SmartState:");
-                console.log(Arr[0].SmartState);
                 nextItemNum = Arr[0].SmartState.NextNum;
-                console.log("nextItemNum:" + nextItemNum);
+                if (Arr[0].SmartState.Num != BASE_ACCOUNT.Num) {
+                    console.log("Arr[0].SmartState.Num:");
+                    console.log(Arr[0].SmartState.Num);
+                    if (Arr[0].SmartState.joinBlock >= smartCurBlock && Arr[0].SmartState.joinBlock <= endBlock) { //判断joinBlock是否在当局的，如已经不在当局，则删除该用户
+                        var i = 0;
+                        var tmpPlayer;
+                        tmpPlayer = playersArr.find(function(item, idx) {
+                            i = idx;
+                            return item.id == Arr[0].SmartState.Num && item.joinBlock == Arr[0].SmartState.joinBlock;
+                        });
+                        if (tmpPlayer == undefined) {
+                            playersArr.push({
+                                id: Arr[0].SmartState.Num,
+                                name: Arr[0].Name,
+                                score: parseInt(Arr[0].SmartState.curScore),
+                                joinBlock: Arr[0].SmartState.joinBlock
+                            });
+                            console.log("playersArr:");
+                            console.log(playersArr);
+                        }
+                    } else {
+                        SendCall(0, "Delete", Arr[0].SmartState, $("idUser").value); //如果不在当局，删除该节点
+                        var j = 0;
+                        playersArr.find(function(item, idx) {
+                            j = idx;
+                            return item.id == Arr[0].SmartState.Num && item.joinBlock == Arr[0].SmartState.joinBlock; //joinBlock是唯一编号
+                        });
+                        console.log("delete: i " + playersArr[j]);
+                        playersArr.splice(j, 1);
+                        console.log("delete:Arr[0].SmartState");
+                        console.log(Arr[0].SmartState);
+                    }
+                }
                 if (nextItemNum)
-                    listAllData(nextItemNum);
+                    updateDblList(nextItemNum);
+            } else {
+                console.log(Err);
             }
+        });
+    }
+    /*
+        function listAllData(itemNum) {
+            var nextItemNum = 0;
+            GetAccountList({
+                StartNum: itemNum,
+                CountNum: 1
+            }, function(Err, Arr) {
+                if (!Err) {
+                    if (Arr[0].SmartState.curScore != 0) { //增加joinBlock是否在当局的判断，如已经不在当局，则删除该用户
+                        allScoreArr.push({
+                            id: Arr[0].SmartState.Num,
+                            name: Arr[0].SmartState.Name,
+                            score: parseInt(Arr[0].SmartState.curScore)
+                        });
+                    }
+                    nextItemNum = Arr[0].SmartState.NextNum;
+                    //console.log("nextItemNum:" + nextItemNum);
+                    if (nextItemNum)
+                        listAllData(nextItemNum);
+                } else {
+                    console.log(Err);
+                }
+            });
+        }    
+        
+    */
+    function listPlayersScore() {
+        var i;
+        if (playersArr.length) {
+            playersArr.sort(function(a, b) {
+                return b.score - a.score;
+            });
+            console.log("listPlayersScore():");
+            console.log(playersArr);
+            for (i in playersArr) {
+                $("idInfo2").innerText = $("idInfo2").innerText + playersArr[i].id + " " + playersArr[i].name + " " + playersArr[i].score + "<br>";
+            }
+        }
+    }
+</script>
+<script>
+    var SaveIdArr = ["idUser"];
+    var TotalCount = 0;
+    ALL_ACCOUNTS = 1;
+    window.addEventListener('Init', function() {
+        CheckInstall();
+        UpdateInfo();
+    });
+    window.addEventListener('UpdateInfo', UpdateInfo);
 
+    function UpdateInfo() { //do something
+    }
+
+    function SaveValues() {
+        SaveToStorageByArr(SaveIdArr);
+    }
+
+    function LoadValues() {
+        LoadFromStorageByArr(SaveIdArr, function() {
+            UpdateFillUser();
         });
     }
 
-    function CallAddMe() {
-        var randNumber = Math.random() * 1000;
-        console.log("USER_ACCOUNT:");
-        console.log(USER_ACCOUNT);
-        SendCall(0, "AddMe", {
-            Score: randNumber
-        }, USER_ACCOUNT[0].Num);
+    function UpdateFillUser() {
+        var Arr = [];
+        for (var i = 0; i < USER_ACCOUNT.length; i++) {
+            var Item = USER_ACCOUNT[i];
+            var Value = {
+                value: Item.Num,
+                text: Item.Num + "." + Item.Name + "  " + SUM_TO_STRING(Item.Value, Item.Currency, 1)
+            };
+            Arr.push(Value);
+        }
+        FillSelect("idUser", Arr);
     }
-
-    window.OnEvent = function(Data) {
-        console.log(Data);
-        console.log("listAllData:");
-        listAllData(BASE_ACCOUNT.Num);
-    };
+    window.addEventListener('Init', function() {
+        LoadValues();
+    });
+    window.addEventListener('UpdateInfo', UpdateFillUser);
 </script>
-<button onclick="CallAddMe()">add me</button>
