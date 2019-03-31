@@ -24,3 +24,21 @@
 5、客户端可以访问 USER_ACCOUNT，BASE_ACCOUNT 获取账号数据
 
 6、Event可以将contract数据发送到链上。
+
+7、
+What's inside 'Data'? can i get the amount of a Tx from 'data'?
+
+Yes, set this value in the event parameter:
+
+smart code (set params):
+
+function OnGet()
+{
+   Event({Amount:context.Value});
+}
+
+client code (read params from Data.Description):
+window.OnEvent=function(Data)
+{
+   console.log("Amount="+FLOAT_FROM_COIN(Data.Description.Amount));
+}
