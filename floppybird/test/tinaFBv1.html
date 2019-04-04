@@ -1,14 +1,13 @@
  User:
-<select size="1" id="idUser" style="width: 250px" class="" onchange="SaveValues()">
+<div id="gameInfo">
+    <select size="1" id="idUser" style="width: 250px" class="" onchange="SaveValues()">
     <option value="0">User1</option>
 </select>
-<button onclick="gameOver()">game over send score</button>
-<button onclick="updateGame()">update game</button>
-<button onclick="payAndStartGame()">转账并开始游戏</button>
-<button onclick="listPlayersScore()">list all</button>
-<button onclick="checkHasPay()">checkHasPay</button>
-<div id="idInfo"> </div>
-
+    <button onclick="gameOver()">game over send score</button>
+    <button onclick="updateGame()">update game</button>
+    <button onclick="payAndStartGame()">转账并开始游戏</button>
+    <button onclick="listPlayersScore()">list all</button>
+</div>
 <script>
     //{PreNum:uint,NextNum:uint,Score:uint}
     var allScoreArr = new Array(); //{id:number,name:string,score:number}
@@ -18,10 +17,6 @@
     var GAMEINTERVAL = 1200;
     var currentChainBlock = 0;
     var hasPay = false;
-
-    function checkHasPay() {
-        console.log(hasPay);
-    }
 
     function payAndStartGame() {
         //转账100并开始游戏
@@ -129,7 +124,7 @@
         }, $("idUser").value);
     }
 
-    function gameOver() {
+    function summitScore() {
         //这里应该判断是否已经跨越endBlock，如是，则先更新smartCurBlock后再提交成绩，且应预留60s时间。
         var AccFrom = $("idUser").value;
         var myScore = Math.random() * 1000;
@@ -142,7 +137,7 @@
         } else {
             setTimeout(SendCallFunc, 9000);
         }
-        updateGame(); //先对游戏进行更新
+        updateGame(); //对游戏进行更新
     }
 
     function SendCallFunc() {
@@ -162,12 +157,13 @@
             console.log("listPlayersScore():");
             console.log(playersArr);
             for (i in playersArr) {
-                $("idInfo").innerText = $("idInfo").innerText + playersArr[i].id + " " + playersArr[i].name + " " + playersArr[i].score + "<br>";
+                $("gameInfo").innerHTML = $("gameInfo").innerHTML + "<br>" + playersArr[i].id + " " + playersArr[i].name + " " + playersArr[i].score;
             }
         }
     }
-</script>
-<script>
+
+
+    //------------------------------
     var SaveIdArr = ["idUser"];
     var TotalCount = 0;
     ALL_ACCOUNTS = 1;

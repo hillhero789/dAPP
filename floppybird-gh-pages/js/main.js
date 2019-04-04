@@ -40,7 +40,6 @@ var loopGameloop;
 var loopPipeloop;
 
 $(document).ready(function() {
-    //pipeheight = randomNum(); //hughchiu debug
     //debugmode = true;
     if (window.location.search == "?debug")
         debugmode = true;
@@ -431,7 +430,9 @@ function playerScore() {
 function updatePipes() {
     pipeheight = randomNum(); //hughchiu
     //Do any pipes need removal?
-    $(".pipe").filter(function() { return $(this).position().left <= -100; }).remove() //add a new pipe (top height + bottom height  + pipeheight == flyArea) and put it in our tracker
+    $(".pipe").filter(function() { return $(this).position().left <= -100; }).remove()
+
+    //add a new pipe (top height + bottom height  + pipeheight == flyArea) and put it in our tracker
     var padding = 80;
     var constraint = flyArea - pipeheight - (padding * 2); //double padding (for top and bottom)
     var topheight = Math.floor((Math.random() * constraint) + padding); //add lower padding
