@@ -1,0 +1,18 @@
+<script>
+    //这段代码用于初始化检查，获取更新信息，获取OnEvent数据
+    window.addEventListener('Init', function() {
+        CheckInstall();
+        UpdateInfo();
+    })
+    window.addEventListener('UpdateInfo', UpdateInfo);
+    window.OnEvent = function(Data) {
+        console.log(Data);
+    };
+
+    function UpdateInfo() {
+        var BaseValue = FLOAT_FROM_COIN(BASE_ACCOUNT.Value);
+        console.log(BaseValue);
+        console.log(USER_ACCOUNT);
+        //$("idClicker").disabled = (BaseValue < 1);
+    }
+</script>

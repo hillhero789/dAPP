@@ -18,7 +18,7 @@ var flyArea = jQuery("#flyarea").height();
 var score = 0;
 var highscore = 0;
 
-var pipeheight = 85;
+var pipeheight = 82;
 var pipeheightArr = new Array(); //hughchiu, pipeheightArr follows pipes.
 var pipes = new Array();
 var pipewidth = 52;
@@ -93,7 +93,7 @@ function showSplash() {
 
 function startGame() {
     currentstate = states.GameScreen;
-    pipeheight = 200; //hughchiu
+    //pipeheight = 200; //hughchiu
     //fade out the splash//hughchiu
     //jQuery("#splash").stop();//hughchiu
     //jQuery("#splash").transition({ opacity: 0 }, 500, 'ease');//hughchiu
@@ -256,7 +256,7 @@ function playerJump() {
 }
 
 function getImgSrc(num) {
-    var bigImgSrc = ["/file/24147988/0", "/file/1882330/0", "/file/1882355/0", "/file/1882387/0", "/file/1882413/0", "/file/1882433/0", "/file/1882462/0", "/file/1882486/0", "/file/1882508/0", "/file/1882540/0"];
+    var bigImgSrc = ["/file/1882304/0", "/file/1882330/0", "/file/1882355/0", "/file/1882387/0", "/file/1882413/0", "/file/1882433/0", "/file/1882462/0", "/file/1882486/0", "/file/1882508/0", "/file/1882540/0"];
     var smallImgSrc = ["src1", "src2", "src3"];
     return bigImgSrc[num];
 }
@@ -423,7 +423,7 @@ function playerScore() {
 }
 
 function updatePipes() {
-    pipeheight = randomNum(85, 120); //hughchiu
+    pipeheight = randomNum(82, 98); //hughchiu
     //Do any pipes need removal?
     jQuery(".pipe").filter(function() { return jQuery(this).position().left <= -100; }).remove()
 

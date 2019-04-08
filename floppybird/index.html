@@ -8,12 +8,12 @@
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
     <!-- Style sheets -->
     <!--reset.css-->
-    <link href="/file/1880813/0" rel="stylesheet">
+    <link href="/file/24147744/0" rel="stylesheet">
     <!--main.css-->
-    <link href="/file/3342173/0" rel="stylesheet">
+    <link href="/file/24147645/0" rel="stylesheet">
 </head>
 
-<body onload="updateGame()">
+<body onload="setTimeout(updateGame,5000)">
     <div id="gamecontainer">
         <div id="gamescreen">
             <div id="sky" class="animated">
@@ -24,14 +24,14 @@
                     <div id="bigscore"></div>
                     <div id="splash"></div>
                     <!--hughchiu-->
-                    <div id="gameInfo" class="overflow-y: scroll;overflow-x: hidden; max-height:400px;">
+                    <div id="gameInfo">
+                        Rules:<br>1. Each round lasts for 24 hours.<br>2. Each round you can play many times and just pay 100TERA.<br>3. Dev fee: 10%.<br>4. Bonus:1st 40%, 2nd 20%, 3rd 10%.<br>5. Lucky player: 20%.<br><br>Select an account:<br>
                         <select size="1" id="idUser" style="width: 250px" class="" onchange="SaveValues()">
                             <option value="0">User1</option>
                         </select><br>
-                        <button id="idPayBtn" onclick="payAndStartGame();bindEvents()">Send 100 and start game</button><br>
-                        <button id="idStartBtn" onclick='bindEvents()'>Just have a try</button>
-                        <button onclick="listLastReward()">listLastReward</button><br>
-                        <div id="idListPlayers"></div>
+                        <button id="idPayBtn" onclick="payAndStartGame();bindEvents()">Send 100 and start</button>
+                        <button id="idStartBtn" onclick='bindEvents()'>Just try</button>
+                        <div id="idListPlayers"></div><br>
                         <div id="idListReward"></div>
                     </div>
                     <div id="scoreboard">
@@ -51,242 +51,14 @@
     <div class="boundingbox" id="playerbox"></div>
     <div class="boundingbox" id="pipebox"></div>
     <script src="http://libs.baidu.com/jquery/1.10.2/jquery.min.js"></script>
-    <script src="/file/1868773/0"></script>
-    <script src="/file/1867581/0"></script>
-    <script src="/file/3429726/0"></script>
-    <script>
-        jQuery.noConflict();
-        var allScoreArr = new Array();
-        var endBlock = 0;
-        var playersArr = new Array();
-        var smartCurBlock = 0;
-        var GAMEINTERVAL = 120;
-        var currentChainBlock = 0;
-        var hasPay = false;
-
-        function listLastReward() {
-            console.log("listLastReward");
-            GetAccountList({
-                StartNum: BASE_ACCOUNT.Num,
-                CountNum: 1
-            }, function(Err1, Arr1) {
-                if (!Err1) {
-                    if (Arr1[0].SmartState.lastRewardBlock != 0) {
-                        GetTransactionList({
-                            BlockNum: Arr1[0].SmartState.lastRewardBlock,
-                            StartNum: Arr1[0].SmartState.lastRewardTr,
-                            CountNum: 1
-                        }, function(Err2, Arr2) {
-                            if (!Err2) {
-                                console.log("Arr2");
-                                console.log(Arr2);
-                            }
-                        });
-                    }
-                }
-            });
-        }
-
-        function payAndStartGame() {
-            updateGame();
-            SendCall($("idUser").value, "payMoney", {}, $("idUser").value);
-        }
-
-        function updateGame() {
-            console.log("updateGame:")
-            GetInfo(function(Err, Data) {
-                if (!Err) {
-                    currentChainBlock = Data.CurBlockNum;
-                    GetAccountList({
-                        StartNum: BASE_ACCOUNT.Num,
-                        CountNum: 1
-                    }, function(Err, Arr) {
-                        if (!Err) {
-                            smartCurBlock = Arr[0].SmartState.curBlock;
-                            endBlock = smartCurBlock + GAMEINTERVAL;
-                            updateDblList(BASE_ACCOUNT.Num);
-                            if (currentChainBlock >= endBlock) {
-                                //hasPay = false;
-                                while (!((endBlock += GAMEINTERVAL) > currentChainBlock));
-                                smartCurBlock = endBlock - GAMEINTERVAL;
-                                SendCall($("idUser").value, "UpdateSmartCurBlock", {
-                                    curBlock: smartCurBlock
-                                }, $("idUser").value);
-                            }
-                        }
-                    });
-                }
-            });
-            listPlayersScore();
-        }
-
-        function updateDblList(itemNum) {
-            console.log("updateDblList:")
-            GetAccountList({
-                StartNum: itemNum,
-                CountNum: 1
-            }, function(Err, Arr) {
-                var nextItemNum = 0;
-                if (!Err) {
-                    nextItemNum = Arr[0].SmartState.NextNum;
-                    if (Arr[0].SmartState.Num != BASE_ACCOUNT.Num) {
-                        var i = 0;
-                        var tmpPlayer;
-                        tmpPlayer = playersArr.find(function(item, idx) {
-                            i = idx;
-                            return item.id == Arr[0].SmartState.Num;
-                        });
-                        if (tmpPlayer == undefined) {
-                            playersArr.push({
-                                id: Arr[0].SmartState.Num,
-                                name: Arr[0].Name,
-                                score: parseInt(Arr[0].SmartState.curScore),
-                                joinBlock: Arr[0].SmartState.joinBlock
-                            });
-                        } else {
-                            playersArr[i].score = playersArr[i].score < parseInt(Arr[0].SmartState.curScore) ? parseInt(Arr[0].SmartState.curScore) : playersArr[i].score;
-                        }
-                        if (Arr[0].SmartState.joinBlock < smartCurBlock || Arr[0].SmartState.joinBlock > endBlock) {
-                            SendCall($("idUser").value, "Delete", Arr[0].SmartState, $("idUser").value);
-                            if (!nextItemNum) {
-                                sendReward();
-                                playersArr.splice(0, playersArr.length);
-                            }
-                        }
-                    }
-                    if (nextItemNum)
-                        updateDblList(nextItemNum);
-                } else {
-                    alert(Err);
-                }
-            });
-        }
-
-        function sendReward() {
-            playersArr.sort(function(a, b) {
-                return b.score - a.score;
-            });
-            while (playersArr.length < 3) {
-                playersArr.unshift(playersArr[0])
-            }
-            console.log("SendReward: players:");
-            console.log(playersArr);
-            SendCall($("idUser").value, "Reward", {
-                Players: playersArr,
-            }, $("idUser").value);
-        }
-
-        function summitScore() {
-            console.log("summitScore:");
-            var AccFrom = $("idUser").value;
-            var myScore = score;
-            if (hasPay) {
-                if (currentChainBlock + 8 < endBlock) {
-                    SendCall(AccFrom, "AddMe", {
-                        curScore: myScore,
-                        joinBlock: currentChainBlock,
-                    }, AccFrom);
-                } else {
-                    setTimeout(SendCallFunc, 9000);
-                }
-            }
-        }
-
-        function SendCallFunc() {
-            var myScore = score;
-            var AccFrom = $("idUser").value;
-            SendCall(AccFrom, "AddMe", {
-                curScore: myScore,
-                joinBlock: currentChainBlock,
-            }, AccFrom);
-        }
-
-        function listPlayersScore() {
-            console.log("listPlyaersScore:")
-            var i;
-            if (playersArr.length) {
-                playersArr.sort(function(a, b) {
-                    return b.score - a.score;
-                });
-                $("idListPlayers").innerHTML = "";
-                for (i in playersArr) {
-                    $("idListPlayers").innerHTML += playersArr[i].id + " " + playersArr[i].name + " " + playersArr[i].score;
-                }
-            }
-        }
-
-        window.addEventListener('Event', function(e) {
-            Data = e.detail;
-            console.log("Event: e")
-            console.log(e);
-            if (Data.Error)
-                SetError(Data.Description);
-            else {
-                if ("funcName" in Data.Description) {
-                    switch (Data.Description.funcName) {
-                        case "UpdateSmartCurBlock":
-                            console.log("Event from UpdateSmartCurBlock");
-                            break;
-                        case "payMoney":
-                            console.log("Event from payMoney");
-                            hasPay = true;
-                            $("idStartBtn").innerText = "Play";
-                            jQuery("idPayBtn").hide();
-                            break;
-                        case "AddMe":
-                            console.log("Event from AddMe");
-                            break;
-                        case "Reward":
-                            console.log("Event from Reward");
-                            break;
-                    }
-                    setTimeout(updateGame, 3000);
-                }
-            }
-        });
-    </script>
-
-    <script>
-        var SaveIdArr = ["idUser"];
-        var TotalCount = 0;
-        ALL_ACCOUNTS = 1;
-        window.addEventListener('Init', function() {
-            CheckInstall();
-            UpdateInfo();
-        });
-        window.addEventListener('UpdateInfo', UpdateInfo);
-
-        function UpdateInfo() {}
-
-        function SaveValues() {
-            SaveToStorageByArr(SaveIdArr);
-        }
-
-        function LoadValues() {
-            LoadFromStorageByArr(SaveIdArr, function() {
-                UpdateFillUser();
-            });
-        }
-
-        function UpdateFillUser() {
-            var Arr = [];
-            for (var i = 0; i < USER_ACCOUNT.length; i++) {
-                var Item = USER_ACCOUNT[i];
-                var Value = {
-                    value: Item.Num,
-                    text: Item.Num + "." + Item.Name + "  " + SUM_TO_STRING(Item.Value, Item.Currency, 1)
-                };
-                Arr.push(Value);
-            }
-            FillSelect("idUser", Arr);
-        }
-        window.addEventListener('Init', function() {
-            LoadValues();
-        });
-        window.addEventListener('UpdateInfo', UpdateFillUser);
-    </script>
-
+    <script src="/file/24147798/0"></script>
+    <!--jquery.transit.min.js-->
+    <script src=""></script>
+    <!--buzz.min.js-->
+    <script src="/file/24147870/0"></script>
+    <!--main_tera.js-->
+    <script src="/file/24147919/0"></script>
+    <!--tinaFBv1_client.js-->
 </body>
-
 
 </html>

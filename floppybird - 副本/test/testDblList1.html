@@ -1,0 +1,209 @@
+ User:
+<select size="1" id="idUser" style="width: 250px" class="" onchange="SaveValues()">
+    <option value="0">User1</option>
+</select>
+<button onclick="gameOver()">game over send score</button>
+<button onclick="updateGame()">update game</button>
+<button onclick="payAndStartGame()">转账并开始游戏</button>
+<button onclick="listPlayersScore()">list all</button>
+<button onclick="checkHasPay()">checkHasPay</button>
+<div id="idInfo"> </div>
+
+<script>
+    //{PreNum:uint,NextNum:uint,Score:uint}
+    var allScoreArr = new Array(); //{id:number,name:string,score:number}
+    var endBlock = 0; //当局游戏结束区块号
+    var playersArr = new Array(); //参与当局游戏的所有人 {id:number,name:string,score:number}
+    var smartCurBlock = 0;
+    var GAMEINTERVAL = 1200;
+    var currentChainBlock = 0;
+    var hasPay = false;
+
+    function checkHasPay() {
+        console.log(hasPay);
+    }
+
+    function payAndStartGame() {
+        //转账100并开始游戏
+        if (!hasPay)
+            SendCall(0, "payMoney", {}, $("idUser").value);
+        setTimeout(updateGame, 8000);
+    }
+
+    function updateGame() {
+        GetInfo(function(Err, Data) {
+            if (!Err) {
+                currentChainBlock = Data.CurBlockNum;
+                console.log(currentChainBlock);
+                GetAccountList({
+                    StartNum: BASE_ACCOUNT.Num,
+                    CountNum: 1
+                }, function(Err, Arr) {
+                    if (!Err) {
+                        console.log("updateGame(), Arr:");
+                        console.log(Arr);
+                        smartCurBlock = Arr[0].SmartState.curBlock;
+                        endBlock = smartCurBlock + GAMEINTERVAL;
+                        console.log("endBlock:" + endBlock);
+                        updateDblList(BASE_ACCOUNT.Num);
+                        if (currentChainBlock >= endBlock) { //表明当前局已经结束，需更新合约的 curBlock
+                            console.log("need to refresh smart curBlock, currentChainBlock is:" + currentChainBlock);
+                            hasPay = false; //当局游戏结束，之前付款记录清除
+                            while (!((endBlock += GAMEINTERVAL) > currentChainBlock)); //计算得到新的smartCurBlock, endBlock
+                            smartCurBlock = endBlock - GAMEINTERVAL;
+                            SendCall(0, "UpdateSmartCurBlock", {
+                                curBlock: smartCurBlock
+                            }, $("idUser").value);
+                            setTimeout(updateGame, 8000); //更新smartCurBlock后，再次updateGame
+                        }
+                    }
+                });
+            }
+        });
+        listPlayersScore();
+    }
+
+    function updateDblList(itemNum) { //更新双向链表,建立playersArr列表，删除局外节点，这里只认为存在两种情况，要么所有节点在smartCurBlock和endBlock之间，要么之外。
+        GetAccountList({
+            StartNum: itemNum,
+            CountNum: 1
+        }, function(Err, Arr) {
+            var nextItemNum = 0;
+            if (!Err) {
+                nextItemNum = Arr[0].SmartState.NextNum;
+                if (Arr[0].SmartState.Num != BASE_ACCOUNT.Num) {
+                    console.log("Arr[0].SmartState.Num:");
+                    console.log(Arr[0].SmartState.Num);
+
+                    var i = 0;
+                    var tmpPlayer;
+                    tmpPlayer = playersArr.find(function(item, idx) {
+                        i = idx;
+                        return item.id == Arr[0].SmartState.Num;
+                    });
+                    if (tmpPlayer == undefined) { //无相同ID表示新加入的player，加入playersArr中
+                        playersArr.push({
+                            id: Arr[0].SmartState.Num,
+                            name: Arr[0].Name,
+                            score: parseInt(Arr[0].SmartState.curScore),
+                            joinBlock: Arr[0].SmartState.joinBlock
+                        });
+                        console.log("playersArr:");
+                        console.log(playersArr);
+                    } else { //id已经存在则记录更高的分数
+                        playersArr[i].score = playersArr[i].score < parseInt(Arr[0].SmartState.curScore) ? parseInt(Arr[0].SmartState.curScore) : playersArr[i].score;
+                    }
+                    if ($("idUser").value == Arr[0].SmartState.Num)
+                        hasPay = true;
+
+                    if (Arr[0].SmartState.joinBlock < smartCurBlock || Arr[0].SmartState.joinBlock > endBlock) { //判断joinBlock是否在当局的，如已经不在当局，则删除该用户
+                        SendCall(0, "Delete", Arr[0].SmartState, $("idUser").value); //如果不在当局，删除该节点
+                        if (!nextItemNum) { //进入此模块，表示当局游戏已经结束，删除最后一个块后（最后一个块的nextItemNum为0），即可以reward
+                            sendReward();
+                            playersArr.splice(0, playersArr.length); //清空 playersArr，length变0
+                        }
+                    }
+                }
+                if (nextItemNum)
+                    updateDblList(nextItemNum);
+            } else {
+                console.log(Err);
+            }
+        });
+    }
+
+    function sendReward() {
+        //按照规则，获取所有joinBlock在curBlock到curBlock + GAMEINTERVAL 以内的参与者，将joinBlock不再此之内的所有参与者清除 Delete
+        console.log("reward:")
+            //listPlayersScore(); //调试用
+        playersArr.sort(function(a, b) {
+            return b.score - a.score;
+        });
+        while (playersArr.length < 3) { //当参与人数小于3人时，用第一名填至三人。
+            playersArr.unshift(playersArr[0])
+        }
+        console.log("sendReward() playersArr:")
+        console.log(playersArr);
+        SendCall(0, "Reward", {
+            Players: playersArr,
+        }, $("idUser").value);
+    }
+
+    function gameOver() {
+        //这里应该判断是否已经跨越endBlock，如是，则先更新smartCurBlock后再提交成绩，且应预留60s时间。
+        var AccFrom = $("idUser").value;
+        var myScore = Math.random() * 1000;
+        updateGame(); //先对游戏进行更新
+        if (currentChainBlock + 8 < endBlock) { //如果当前区块号加8后仍小于结束区块，则可提交成绩，否则等待
+            SendCall(0, "AddMe", {
+                curScore: myScore,
+                joinBlock: currentChainBlock,
+            }, AccFrom);
+        } else {
+            setTimeout(SendCallFunc, 9000);
+        }
+        updateGame(); //先对游戏进行更新
+    }
+
+    function SendCallFunc() {
+        var myScore = Math.random() * 1000;
+        SendCall(0, "AddMe", {
+            curScore: myScore,
+            joinBlock: currentChainBlock,
+        }, $("idUser").value);
+    }
+
+    function listPlayersScore() {
+        var i;
+        if (playersArr.length) {
+            playersArr.sort(function(a, b) {
+                return b.score - a.score;
+            });
+            console.log("listPlayersScore():");
+            console.log(playersArr);
+            for (i in playersArr) {
+                $("idInfo").innerText = $("idInfo").innerText + playersArr[i].id + " " + playersArr[i].name + " " + playersArr[i].score + "<br>";
+            }
+        }
+    }
+</script>
+<script>
+    var SaveIdArr = ["idUser"];
+    var TotalCount = 0;
+    ALL_ACCOUNTS = 1;
+    window.addEventListener('Init', function() {
+        CheckInstall();
+        UpdateInfo();
+    });
+    window.addEventListener('UpdateInfo', UpdateInfo);
+
+    function UpdateInfo() { //do something
+    }
+
+    function SaveValues() {
+        SaveToStorageByArr(SaveIdArr);
+    }
+
+    function LoadValues() {
+        LoadFromStorageByArr(SaveIdArr, function() {
+            UpdateFillUser();
+        });
+    }
+
+    function UpdateFillUser() {
+        var Arr = [];
+        for (var i = 0; i < USER_ACCOUNT.length; i++) {
+            var Item = USER_ACCOUNT[i];
+            var Value = {
+                value: Item.Num,
+                text: Item.Num + "." + Item.Name + "  " + SUM_TO_STRING(Item.Value, Item.Currency, 1)
+            };
+            Arr.push(Value);
+        }
+        FillSelect("idUser", Arr);
+    }
+    window.addEventListener('Init', function() {
+        LoadValues();
+    });
+    window.addEventListener('UpdateInfo', UpdateFillUser);
+</script>

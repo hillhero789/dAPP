@@ -245,7 +245,7 @@ Screen - Game
     top: 0;
     width: 100%;
     height: 80%;
-    background-image: url('/file/24148073/0');
+    background-image: url('/file/1867138/0');
     background-repeat: repeat-x;
     background-position: 0px 100%;
     background-color: #4ec0ca;
@@ -265,7 +265,7 @@ Screen - Game
     top: -16px;
     height: 16px;
     width: 100%;
-    background-image: url('/file/24148120/0');
+    background-image: url('/file/1867101/0');
     background-repeat: repeat-x;
     -webkit-animation: animCeiling 481ms linear infinite;
     animation: animCeiling 481ms linear infinite;
@@ -276,7 +276,7 @@ Screen - Game
     bottom: 0;
     width: 100%;
     height: 20%;
-    background-image: url('/file/24148150/1');
+    background-image: url('/file/1867173/0');
     background-repeat: repeat-x;
     background-position: 0px 0px;
     background-color: #ded895;
@@ -303,7 +303,7 @@ Screen - Game
     left: 65px;
     width: 188px;
     height: 170px;
-    background-image: url('/file/24148337/0');
+    background-image: url('/file/1867215/0');
     background-repeat: no-repeat;
 }
 
@@ -347,7 +347,7 @@ Screen - Game
     left: 43px;
     width: 236px;
     height: 280px;
-    background-image: url('/file/24148246/0');
+    background-image: url('/file/1867245/0');
     background-repeat: no-repeat;
     z-index: 1000;
 }
@@ -416,7 +416,7 @@ Screen - Game
     position: absolute;
     width: 34px;
     height: 24px;
-    background-image: url('/file/24148295/0');
+    background-image: url('/file/1867001/0');
     -webkit-animation: animBird 300ms steps(4) infinite;
     animation: animBird 300ms steps(4) infinite;
 }

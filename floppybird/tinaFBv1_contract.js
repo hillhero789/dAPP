@@ -25,8 +25,6 @@ function CheckPermission() {
 
 function Delete(Params) {
     CheckPermission();
-    //Event("delete:PrevNum" + Params.PrevNum);
-    //Event("delete:NextNum" + Params.NextNum);
     if (Params.PrevNum) {
         var PrevItem = ReadState(Params.PrevNum);
         PrevItem.NextNum = Params.NextNum;
@@ -37,7 +35,6 @@ function Delete(Params) {
         NextItem.PrevNum = Params.PrevNum;
         WriteState(NextItem);
     }
-
     Params.PrevNum = 0;
     Params.NextNum = 0;
 }
@@ -50,7 +47,6 @@ function AddToHead(NewItem) {
     var HeadItem = ReadState(HeadNum);
     if (HeadItem.NextNum !== NewItem.Num) {
         Delete(NewItem);
-
         if (HeadItem.NextNum) {
             var NextItem = ReadState(HeadItem.NextNum);
             NextItem.PrevNum = NewItem.Num;
@@ -74,56 +70,59 @@ function payMoney(Params) {
     if (context.BlockNum > curItem.joinBlock + GAMEINTERVAL || curItem.joinBlock == 0) {
         Move(context.FromNum, context.Smart.Account, 100.0, "pay for floppy bird.");
         AddMe({ curScore: 0, joinBlock: context.BlockNum });
+        Event({ funcName: "payMoney", isSuccess: true });
+    } else {
+        Event({ funcName: "payMoney", isSuccess: false });
     }
-    Event({ funcName: "payMoney" });
 }
 
 "public"
 
 function AddMe(Params) {
     CheckPermission();
+    var smartState = ReadState(context.Smart.Account);
     var curItem = ReadState(context.FromNum);
-    curItem.curScore = curItem.curScore < Params.curScore ? Params.curScore : curItem.curScore;
-    curItem.joinBlock = Params.joinBlock;
-    if (curItem.highScore < curItem.curScore)
-        curItem.highScore = curItem.curScore;
-    curItem.joinBlock = context.BlockNum;
-    curItem.gameTimes++;
-    AddToHead(curItem);
-    Event({ funcName: "AddMe" });
+    var GAMEINTERVAL = 120;
+    if (curItem.joinBlock < smartState.curBlock + GAMEINTERVAL) {
+        var curItem = ReadState(context.FromNum);
+        curItem.curScore = curItem.curScore < Params.curScore ? Params.curScore : curItem.curScore;
+        curItem.joinBlock = Params.joinBlock;
+        if (curItem.highScore < curItem.curScore)
+            curItem.highScore = curItem.curScore;
+        curItem.gameTimes++;
+        AddToHead(curItem);
+        Event({ funcName: "AddMe", isSuccess: true });
+    } else {
+        Event({ funcName: "AddMe", isSuccess: false });
+    }
 }
 
 "public"
 
-function UpdateSmartCurBlock(Params) {
+function DoEndRound(Params) { //更新smart 的curBlock, reward。
     CheckPermission();
     var smartState = ReadState(context.Smart.Account);
-    smartState.curBlock = Params.curBlock;
+    if (Params.Players.length) {
+        var base = ReadAccount(context.Smart.Account);
+        var totalCoins = FLOAT_FROM_COIN(base.Value);
+        if (totalCoins == 0) {
+            return;
+        }
+        var luckyOne = Params.luckyPlayerNum;
+        Move(context.Smart.Account, context.Smart.Owner, 0.1 * totalCoins, "Floppy bird reward:Dev fee 10%");
+        Move(context.Smart.Account, Params.Players[0].id, 0.4 * totalCoins, "Floppy bird reward:1st 40%");
+        Move(context.Smart.Account, Params.Players[1].id, 0.2 * totalCoins, "Floppy bird reward:2nd 20%");
+        Move(context.Smart.Account, Params.Players[2].id, 0.1 * totalCoins, "Floppy bird reward:3rd 10%");
+        Move(context.Smart.Account, luckyOne, 0.2 * totalCoins, "Floppy bird reward:lucky one 20%");
+        smartState.lastRewardBlock = context.BlockNum;
+        smartState.lastRewardTr = context.TrNum;
+        smartState.curBlock = Params.curBlock;
+        Event({ funcName: "DoEndRound", isReward: true });
+    } else {
+        smartState.curBlock = Params.curBlock;
+        Event({ funcName: "DoEndRound", isReward: false }); //false 代表不reward，只更新结束时间
+    }
     WriteState(smartState);
-    Event({ funcName: "UpdateSmartCurBlock" });
-}
-
-"public"
-
-function Reward(Params) {
-    CheckPermission();
-    var base = ReadAccount(context.Smart.Account);
-    var smartState = ReadState(context.Smart.Account);
-    var totalCoins = FLOAT_FROM_COIN(base.Value)
-    var luckyOne = Params.Players[context.BlockHash[0] % Params.Players.length];
-
-    /*var ParaRewardPlayers = [{ id: Params.Players[0].id, win: 0.4 * totalCoins }, { id: Params.Players[1].id, win: 0.2 * totalCoins }, { id: Params.Players[2].id, win: 0.1 * totalCoins }, { id: Params.Players[luckyOne].id, win: 0.2 * totalCoins }];
-    Move(context.Smart.Account, context.Smart.Owner, 0.1 * totalCoins, "Floppy bird reward:Dev fee 10%");
-    Move(context.Smart.Account, Params.Players[0].id, 0.4 * totalCoins, "Floppy bird reward:1st 40%");
-    Move(context.Smart.Account, Params.Players[1].id, 0.2 * totalCoins, "Floppy bird reward:2nd 20%");
-    Move(context.Smart.Account, Params.Players[2].id, 0.1 * totalCoins, "Floppy bird reward:3rd 10%");
-    Move(context.Smart.Account, Params.Players[luckyOne].id, 0.2 * totalCoins, "Floppy bird reward:lucky one 20%");
-    smartState.lastRewardBlock = context.BlockNum;
-    smartState.lastRewardTr = context.TrNum;
-    WriteState(smartState);
-    */
-    //Event({ funcName: "Reward", rewardPlayers: ParaRewardPlayers });
-    Event({ funcName: "Reward", Params: Params });
 }
 
 function OnSetSmart() {
@@ -138,8 +137,6 @@ function OnSetSmart() {
     curItem.lastRewardBlock = 0;
     curItem.lastRewardTr = 0;
     WriteState(curItem);
-    //Event(ReadState(context.Smart.Account));
-    //Event("context.FromNum:" + context.FromNum);
 }
 
 /*

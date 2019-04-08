@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Flappy Bird</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="author" content="Nebez Briefkani" />
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;" name="viewport" />
+    <!-- Style sheets -->
+    <!--reset.css-->
+    <link href="/file/1880813/0" rel="stylesheet">
+    <!--main.css-->
+    <link href="/file/2429362/0" rel="stylesheet">
+</head>
+
+<body>
+    <div id="gamecontainer">
+        <div id="gamescreen">
+            <div id="sky" class="animated">
+                <div id="flyarea">
+                    <div id="ceiling" class="animated"></div>
+                    <!-- This is the flying and pipe area container -->
+                    <div id="player" class="bird animated"></div>
+                    <div id="bigscore"></div>
+                    <div id="splash"></div>
+                    <!--hughchiu-->
+                    <div id="gameInfo">
+                        <select size="1" id="idUser" style="width: 250px" class="" onchange="SaveValues()">
+                            <option value="0">User1</option>
+                        </select> rules:
+                        <br>1.pick one to war.
+                        <button onclick="payAndStartGame()">Send 100 to start game</button>
+                        <button onclick='bindEvents()'>bind event</button>
+                    </div>
+                    <div id="scoreboard">
+                        <div id="medal"></div>
+                        <div id="currentscore"></div>
+                        <div id="highscore"></div>
+                        <div id="replay"><img src="/file/1867488/0" alt="replay"></div>
+                    </div>
+                    <!-- Pipes go here! -->
+                </div>
+            </div>
+            <div id="land" class="animated">
+                <div id="debug"></div>
+            </div>
+        </div>
+    </div>
+    <div class="boundingbox" id="playerbox"></div>
+    <div class="boundingbox" id="pipebox"></div>
+    <script src="http://libs.baidu.com/jquery/1.10.2/jquery.min.js"></script>
+    <!--jquery.min.js-->
+    <script src="/file/1868773/0"></script>
+    <!--jquery.transit.min.js-->
+    <script src="/file/1867581/0"></script>
+    <!--buzz.min.js-->
+    <script>
+        var allScoreArr = new Array();
+        var endBlock = 0;
+        var playersArr = new Array();
+        var smartCurBlock = 0;
+        var GAMEINTERVAL = 1200;
+        var currentChainBlock = 0;
+        var hasPay = false;
+
+        function payAndStartGame() {
+            //转账100并开始游戏
+            if (!hasPay)
+                SendCall(0, "payMoney", {}, $("idUser").value);
+            setTimeout(updateGame, 8000);
+        }
+
+        function updateGame() {
+            GetInfo(function(Err, Data) {
+                if (!Err) {
+                    currentChainBlock = Data.CurBlockNum;
+                    console.log(currentChainBlock);
+                    GetAccountList({
+                        StartNum: BASE_ACCOUNT.Num,
+                        CountNum: 1
+                    }, function(Err, Arr) {
+                        if (!Err) {
+                            console.log("updateGame(), Arr:");
+                            console.log(Arr);
+                            smartCurBlock = Arr[0].SmartState.curBlock;
+                            endBlock = smartCurBlock + GAMEINTERVAL;
+                            console.log("endBlock:" + endBlock);
+                            updateDblList(BASE_ACCOUNT.Num);
+                            if (currentChainBlock >= endBlock) {
+                                console.log("need to refresh smart curBlock, currentChainBlock is:" + currentChainBlock);
+                                hasPay = false;
+                                while (!((endBlock += GAMEINTERVAL) > currentChainBlock));
+                                smartCurBlock = endBlock - GAMEINTERVAL;
+                                SendCall(0, "UpdateSmartCurBlock", {
+                                    curBlock: smartCurBlock
+                                }, $("idUser").value);
+                                setTimeout(updateGame, 8000);
+                            }
+                        }
+                    });
+                }
+            });
+            listPlayersScore();
+        }
+
+        function updateDblList(itemNum) {
+            GetAccountList({
+                StartNum: itemNum,
+                CountNum: 1
+            }, function(Err, Arr) {
+                var nextItemNum = 0;
+                if (!Err) {
+                    nextItemNum = Arr[0].SmartState.NextNum;
+                    if (Arr[0].SmartState.Num != BASE_ACCOUNT.Num) {
+                        console.log("Arr[0].SmartState.Num:");
+                        console.log(Arr[0].SmartState.Num);
+
+                        var i = 0;
+                        var tmpPlayer;
+                        tmpPlayer = playersArr.find(function(item, idx) {
+                            i = idx;
+                            return item.id == Arr[0].SmartState.Num;
+                        });
+                        if (tmpPlayer == undefined) {
+                            playersArr.push({
+                                id: Arr[0].SmartState.Num,
+                                name: Arr[0].Name,
+                                score: parseInt(Arr[0].SmartState.curScore),
+                                joinBlock: Arr[0].SmartState.joinBlock
+                            });
+                            console.log("playersArr:");
+                            console.log(playersArr);
+                        } else {
+                            playersArr[i].score = playersArr[i].score < parseInt(Arr[0].SmartState.curScore) ? parseInt(Arr[0].SmartState.curScore) : playersArr[i].score;
+                        }
+                        if ($("idUser").value == Arr[0].SmartState.Num)
+                            hasPay = true;
+
+                        if (Arr[0].SmartState.joinBlock < smartCurBlock || Arr[0].SmartState.joinBlock > endBlock) {
+                            SendCall(0, "Delete", Arr[0].SmartState, $("idUser").value);
+                            if (!nextItemNum) {
+                                sendReward();
+                                playersArr.splice(0, playersArr.length);
+                            }
+                        }
+                    }
+                    if (nextItemNum)
+                        updateDblList(nextItemNum);
+                } else {
+                    console.log(Err);
+                }
+            });
+        }
+
+        function sendReward() {
+            console.log("reward:")
+            playersArr.sort(function(a, b) {
+                return b.score - a.score;
+            });
+            while (playersArr.length < 3) {
+                playersArr.unshift(playersArr[0])
+            }
+            console.log("sendReward() playersArr:")
+            console.log(playersArr);
+            SendCall(0, "Reward", {
+                Players: playersArr,
+            }, $("idUser").value);
+        }
+
+        function summitScore() {
+            var AccFrom = $("idUser").value;
+            var myScore = Math.random() * 1000;
+            updateGame();
+            if (currentChainBlock + 8 < endBlock) {
+                SendCall(0, "AddMe", {
+                    curScore: myScore,
+                    joinBlock: currentChainBlock,
+                }, AccFrom);
+            } else {
+                setTimeout(SendCallFunc, 9000);
+            }
+            updateGame();
+        }
+
+        function SendCallFunc() {
+            var myScore = Math.random() * 1000;
+            SendCall(0, "AddMe", {
+                curScore: myScore,
+                joinBlock: currentChainBlock,
+            }, $("idUser").value);
+        }
+
+        function listPlayersScore() {
+            var i;
+            if (playersArr.length) {
+                playersArr.sort(function(a, b) {
+                    return b.score - a.score;
+                });
+                console.log("listPlayersScore():");
+                console.log(playersArr);
+                for (i in playersArr) {
+                    $("gameInfo").innerHTML = $("gameInfo").innerHTML + "<br>" + playersArr[i].id + " " + playersArr[i].name + " " + playersArr[i].score;
+                }
+            }
+        }
+
+        var SaveIdArr = ["idUser"];
+        var TotalCount = 0;
+        ALL_ACCOUNTS = 1;
+        window.addEventListener('Init', function() {
+            CheckInstall();
+            UpdateInfo();
+        });
+        window.addEventListener('UpdateInfo', UpdateInfo);
+
+        function UpdateInfo() {}
+
+        function SaveValues() {
+            SaveToStorageByArr(SaveIdArr);
+        }
+
+        function LoadValues() {
+            LoadFromStorageByArr(SaveIdArr, function() {
+                UpdateFillUser();
+            });
+        }
+
+        function UpdateFillUser() {
+            var Arr = [];
+            for (var i = 0; i < USER_ACCOUNT.length; i++) {
+                var Item = USER_ACCOUNT[i];
+                var Value = {
+                    value: Item.Num,
+                    text: Item.Num + "." + Item.Name + "  " + SUM_TO_STRING(Item.Value, Item.Currency, 1)
+                };
+                Arr.push(Value);
+            }
+            FillSelect("idUser", Arr);
+        }
+        window.addEventListener('Init', function() {
+            LoadValues();
+        });
+        window.addEventListener('UpdateInfo', UpdateFillUser);
+    </script>
+    <!-- tinaFBv1.js -->
+    <script src="/file/3339799/0"></script>
+    <!-- main.js -->
+</body>
+
+</html>
