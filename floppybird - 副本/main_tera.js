@@ -27,11 +27,11 @@ var replayclickable = false;
 
 //sounds
 var volume = 30;
-//var soundJump = new buzz.sound("assets/sounds/sfx_wing.ogg");
-//var soundScore = new buzz.sound("assets/sounds/sfx_point.ogg");
-//var soundHit = new buzz.sound("assets/sounds/sfx_hit.ogg");
+var soundJump = new buzz.sound("/file/24293422/0");
+var soundScore = new buzz.sound("/file/24293209/0");
+var soundHit = new buzz.sound("/file/24293110/0");
 //var soundDie = new buzz.sound("assets/sounds/sfx_die.ogg");
-//var soundSwoosh = new buzz.sound("assets/sounds/sfx_swooshing.ogg");
+var soundSwoosh = new buzz.sound("/file/24293244/0");
 buzz.all().setVolume(volume);
 
 //loops
@@ -74,8 +74,8 @@ function showSplash() {
     jQuery("#player").css({ y: 0, x: 0 });
     updatePlayer(jQuery("#player"));
 
-    //soundSwoosh.stop();
-    //soundSwoosh.play();
+    soundSwoosh.stop();
+    soundSwoosh.play();
 
     //clear out all the pipes if there are any
     jQuery(".pipe").remove();
@@ -251,12 +251,12 @@ function screenClick() {
 function playerJump() {
     velocity = jump;
     //play jump sound
-    //soundJump.stop();
-    //soundJump.play();
+    soundJump.stop();
+    soundJump.play();
 }
 
 function getImgSrc(num) {
-    var bigImgSrc = ["/file/1882304/0", "/file/1882330/0", "/file/1882355/0", "/file/1882387/0", "/file/1882413/0", "/file/1882433/0", "/file/1882462/0", "/file/1882486/0", "/file/1882508/0", "/file/1882540/0"];
+    var bigImgSrc = ["/file/24294185/0", "/file/24294202/0", "/file/24294218/0", "/file/24294244/0", "/file/24294263/0", "/file/24294280/0", "/file/24294301/0", "/file/24294321/0", "/file/24294338/0", "/file/24294354/0"];
     var smallImgSrc = ["src1", "src2", "src3"];
     return bigImgSrc[num];
 }
@@ -300,13 +300,13 @@ function setMedal() {
         return false;
 
     if (score >= 10)
-        medal = "/file/1882660/0";
+        medal = "/file/24294394/0";
     if (score >= 20)
-        medal = "/file/1882705/0";
+        medal = "/file/24294414/0";
     if (score >= 30)
-        medal = "/file/1882745/0";
+        medal = "/file/24294431/0";
     if (score >= 40)
-        medal = "/file/1882794/0";
+        medal = "/file/24294448/0";
 
     elemmedal.append('<img src="' + medal + '">');
 
@@ -340,10 +340,10 @@ function playerDead() {
         showScore();
     } else {
         //play the hit sound (then the dead sound) and then show score
-        //soundHit.play().bindOnce("ended", function() {
-        //    soundDie.play().bindOnce("ended", function() {
-        showScore();
-        //    });
+        soundHit.play().bindOnce("ended", function() {
+            //    soundDie.play().bindOnce("ended", function() {
+            showScore();
+        });
         //});
     }
     //hughhiu add some code here to act with smart contract
@@ -370,16 +370,16 @@ function showScore() {
     var wonmedal = setMedal();
 
     //SWOOSH!
-    //soundSwoosh.stop();
-    //soundSwoosh.play();
+    soundSwoosh.stop();
+    soundSwoosh.play();
 
     //show the scoreboard
     jQuery("#scoreboard").css({ y: '40px', opacity: 0 }); //move it down so we can slide it up
     jQuery("#replay").css({ y: '40px', opacity: 0 });
     jQuery("#scoreboard").transition({ y: '0px', opacity: 1 }, 600, 'ease', function() {
         //When the animation is done, animate in the replay button and SWOOSH!
-        //soundSwoosh.stop();
-        //soundSwoosh.play();
+        soundSwoosh.stop();
+        soundSwoosh.play();
         jQuery("#replay").transition({ y: '0px', opacity: 1 }, 600, 'ease');
 
         //also animate in the MEDAL! WOO!
@@ -401,8 +401,8 @@ jQuery("#replay").click(function() {
     else
         replayclickable = false;
     //SWOOSH!
-    //soundSwoosh.stop();
-    //soundSwoosh.play();
+    soundSwoosh.stop();
+    soundSwoosh.play();
 
     //fade out the scoreboard
     jQuery("#scoreboard").transition({ y: '-40px', opacity: 0 }, 1000, 'ease', function() {
@@ -417,8 +417,8 @@ jQuery("#replay").click(function() {
 function playerScore() {
     score += 1;
     //play score sound
-    //soundScore.stop();
-    //soundScore.play();
+    soundScore.stop();
+    soundScore.play();
     setBigScore();
 }
 

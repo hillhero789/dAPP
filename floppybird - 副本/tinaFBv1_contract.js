@@ -63,7 +63,7 @@ function AddToHead(NewItem) {
 "public"
 
 function payMoney(Params) {
-    var GAMEINTERVAL = 120;
+    var GAMEINTERVAL = 82800;
     CheckPermission();
     var smartState = ReadState(context.Smart.Account);
     var curItem = ReadState(context.FromNum);
@@ -72,7 +72,6 @@ function payMoney(Params) {
         curItem.curScore = 0;
         curItem.joinBlock = context.BlockNum;
         AddToHead(curItem);
-        //AddMe({ curScore: 0, joinBlock: context.BlockNum });
         Event({ funcName: "payMoney", toUserId: context.FromNum, isSuccess: true });
     } else {
         Event({ funcName: "payMoney", toUserId: context.FromNum, isSuccess: false });
@@ -85,10 +84,9 @@ function AddMe(Params) {
     CheckPermission();
     var smartState = ReadState(context.Smart.Account);
     var curItem = ReadState(context.FromNum);
-    var GAMEINTERVAL = 120;
+    var GAMEINTERVAL = 82800;
     if (curItem.joinBlock < smartState.curBlock + GAMEINTERVAL && curItem.joinBlock > smartState.curBlock) {
         curItem.curScore = curItem.curScore < Params.curScore ? Params.curScore : curItem.curScore;
-        //curItem.joinBlock = Params.joinBlock;
         if (curItem.highScore < curItem.curScore)
             curItem.highScore = curItem.curScore;
         curItem.gameTimes++;
@@ -101,7 +99,7 @@ function AddMe(Params) {
 
 "public"
 
-function DoEndRound(Params) { //更新smart 的curBlock, reward。
+function DoEndRound(Params) {
     CheckPermission();
     var smartState = ReadState(context.Smart.Account);
     if (Params.Players.length) {
@@ -120,7 +118,7 @@ function DoEndRound(Params) { //更新smart 的curBlock, reward。
         smartState.lastRewardTr = context.TrNum;
         Event({ funcName: "DoEndRound", isReward: true });
     } else {
-        Event({ funcName: "DoEndRound", isReward: false }); //false 代表不reward，只更新结束时间
+        Event({ funcName: "DoEndRound", isReward: false });
     }
     smartState.curBlock = Params.curBlock;
     WriteState(smartState);
@@ -141,15 +139,28 @@ function OnSetSmart() {
 }
 
 /*
+function OnGet() {
+    var BaseNum = context.Smart.Account;
+    if (context.FromNum === context.Smart.Owner && context.Account.Num === BaseNum &&
+        context.Description.substr(0, 1) === "{") {
+        var CurItem = ReadState(BaseNum);
+        var Data = JSON.parse(context.Description);
+        CurItem.HTMLBlock = Data.HTMLBlock;
+        CurItem.HTMLTr = Data.HTMLTr;
+        WriteState(CurItem);
+        Event("Set new HTML  to: " + CurItem.HTMLBlock + "/" + CurItem.HTMLTr);
+        return 1;
+    }
+    return 0;
+}*/
+
 function OnDeleteSmart() {
-    //判断是否仍在当局，如在则禁止退出
-    var GAMEINTERVAL = 120;
-    var smartState = ReadState(context.Smart.Account);
+    var GAMEINTERVAL = 82800;
     var curItem = ReadState(context.FromNum);
-    if (context.BlockNum < curItem.joinBlock + GAMEINTERVAL)
+    if (context.BlockNum <= curItem.joinBlock + GAMEINTERVAL)
         throw "You can quit after " + (curItem.joinBlock + GAMEINTERVAL - context.BlockNum) + " seconds.";
 }
-*/
+
 function OnCreate() {
     var smartState = ReadState(context.Smart.Account);
     smartState.curBlock = context.BlockNum;

@@ -3,13 +3,12 @@ var allScoreArr = new Array();
 var endBlock = 0;
 var playersArr = new Array();
 var smartCurBlock = 0;
-var GAMEINTERVAL = 120;
+var GAMEINTERVAL = 82800;
 var currentChainBlock = 0;
 var hasPay = false;
 var isUpdating = false;
 
 function listLastReward(Params) {
-    console.log("listLastReward");
     GetAccountList({
         StartNum: BASE_ACCOUNT.Num,
         CountNum: 1
@@ -80,14 +79,11 @@ function setBtn() {
 function updateGame() {
     setBtn();
     $("idPayBtn").disabled = false;
-    console.log("updateGame:")
     GetAccountList({
         StartNum: BASE_ACCOUNT.Num,
         CountNum: 1
     }, function(Err, Arr) {
         if (!Err) {
-            console.log("updateGame:Arr");
-            console.log(Arr);
             smartCurBlock = Arr[0].SmartState.curBlock;
             endBlock = smartCurBlock + GAMEINTERVAL;
             GetInfo(function(Err, Data) {
@@ -103,7 +99,6 @@ function updateGame() {
 }
 
 function updateDblList(itemNum) {
-    console.log("updateDblList:")
     GetAccountList({
         StartNum: itemNum,
         CountNum: 1
@@ -133,8 +128,6 @@ function updateDblList(itemNum) {
                     playersArr[i].score = playersArr[i].score < parseInt(Arr[0].SmartState.curScore) ? parseInt(Arr[0].SmartState.curScore) : playersArr[i].score;
                 }
                 if (Arr[0].SmartState.joinBlock <= smartCurBlock || Arr[0].SmartState.joinBlock >= endBlock) {
-                    console.log("Delete item:");
-                    console.log(Arr[0].SmartState);
                     SendCall($("idUser").value, "Delete", Arr[0].SmartState, $("idUser").value);
                     tmpPlayer = playersArr.find(function(item, idx) {
                         i = idx;
@@ -153,7 +146,7 @@ function updateDblList(itemNum) {
                     playersArr.splice(0, playersArr.length);
                 }
                 isUpdating = false;
-                listPlayers(); //////////
+                listPlayers();
             }
         } else {
             alert(Err);
@@ -178,15 +171,8 @@ function sendDoEndRound(paraSmartCurBlock) {
         }
         var plyLen = playersArr.length;
         var rndNum = randomN(0, playersArr.length - 1);
-        console.log(plyLen + " " + rndNum);
         luckId = playersArr[randomN(0, playersArr.length - 1)].id;
     }
-    console.log("sendCall DoEndRound Param:")
-    console.log({
-        curBlock: paraSmartCurBlock,
-        Players: playersArr,
-        luckyPlayerNum: luckId
-    });
     SendCall($("idUser").value, "DoEndRound", {
         curBlock: paraSmartCurBlock,
         Players: playersArr,
@@ -195,19 +181,16 @@ function sendDoEndRound(paraSmartCurBlock) {
 }
 
 function summitScore() {
-    console.log("summitScore:");
     var AccFrom = $("idUser").value;
     var myScore = score;
     if (hasPay) {
         SendCall(AccFrom, "AddMe", {
             curScore: myScore
-                //joinBlock: currentChainBlock,
         }, AccFrom);
     }
 }
 
 function listPlayersScore() {
-    console.log("listPlyaersScore:")
     var i;
     if (playersArr.length) {
         playersArr.sort(function(a, b) {
@@ -228,24 +211,19 @@ window.addEventListener('Event', function(e) {
         if ("funcName" in Data.Description) {
             switch (Data.Description.funcName) {
                 case "payMoney":
-                    console.log("Event from payMoney");
                     if (Data.Description.toUserId == $("idUser").value) {
                         hasPay = true;
                         setBtn();
                     }
                     break;
                 case "AddMe":
-                    console.log("Event from AddMe");
                     break;
                 case "DoEndRound":
-                    console.log("Event from DoEndRound");
                     break;
                 case "Delete":
-                    console.log("Event from Delete");
                     break;
             }
         }
-        console.log(Data.Description);
         if (!isUpdating) {
             isUpdating = true;
             setTimeout(updateGame, 5000);
