@@ -1,0 +1,34 @@
+<textarea id="idTxt" rows="3" cols="20">
+在w3school，你可以找到你所需要的所有的网站建设教程。
+</textarea>
+<p id="idP"></p>
+<button id="idBtn" onclick="send()">发送</button>
+<script>
+    function send() {
+        console.log({
+            content: document.getElementById("idTxt").value
+        });
+        console.log(USER_ACCOUNT[0].Num);
+
+        SendCall(USER_ACCOUNT[0].Num, "addToChain", {
+            content: document.getElementById("idTxt").value
+        }, USER_ACCOUNT[0].Num);
+    }
+
+    window.addEventListener('Event', function(e) {
+        Data = e.detail;
+        if (Data.Error)
+            SetError(Data.Description);
+        else {
+            console.log(Data);
+        }
+    });
+
+    function getLen(str) { //获取准确的包含汉字的字符串的长度
+        return str.replace(/[\u0391-\uFFE5]/g, "aa").length; //先把中文替换成两个字节的英文，在计算长度
+    }
+
+    window.onkeyup = function() {
+        document.getElementById("idP").innerText = "字符数：" + getLen(document.getElementById("idTxt").value);
+    }
+</script>
