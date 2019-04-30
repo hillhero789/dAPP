@@ -1,0 +1,29 @@
+<textarea id="idTxt" rows="50" cols="100">
+这里输入要存放到区块链中的数据。
+</textarea>
+<button id="idBtn" onclick="send()">发送</button>
+<script>
+    function send() {
+        console.log({
+            content: document.getElementById("idTxt").value
+        });
+        console.log(USER_ACCOUNT[0].Num);
+
+        SendCall(USER_ACCOUNT[0].Num, "addToChain", {
+            content: document.getElementById("idTxt").value
+        }, USER_ACCOUNT[0].Num);
+    }
+
+    window.addEventListener('Event', function(e) {
+        Data = e.detail;
+        if (Data.Error)
+            SetError(Data.Description);
+        else {
+            console.log(e);
+        }
+    });
+
+    window.onkeyup = function() {
+        document.getElementById("idP").innerText = "字符数：" + getLen(document.getElementById("idTxt").value);
+    }
+</script>

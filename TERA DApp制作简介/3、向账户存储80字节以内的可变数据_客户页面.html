@@ -1,0 +1,19 @@
+<button onclick="getSmartState()">get smart state</button><br><br>
+<button onclick="setSmartMutex()">sendCall to set mutex</button>
+<script>
+    function getSmartState() {
+        GetAccountList({
+            StartNum: BASE_ACCOUNT.Num,
+            CountNum: 1
+        }, function(Err, Arr) {
+            if (!Err) {
+                console.log(Arr);
+            }
+        });
+    }
+
+    function setSmartMutex() {
+        console.log(USER_ACCOUNT[0]);
+        SendCall(USER_ACCOUNT[0].Num, "setMutex", {}, USER_ACCOUNT[0].Num);
+    }
+</script>
