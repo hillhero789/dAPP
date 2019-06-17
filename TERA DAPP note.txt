@@ -42,3 +42,5 @@ window.OnEvent=function(Data)
 {
    console.log("Amount="+FLOAT_FROM_COIN(Data.Description.Amount));
 }
+
+8、  
