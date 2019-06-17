@@ -1,0 +1,80 @@
+<html>
+
+<head>
+    <script src="https://web3js.b-cdn.net/web3js/web3.1.0.0-beta.37.min1111111.js"></script>
+    <script>
+        web3 = new Web3(new Web3.providers.WebsocketProvider("wss://ropsten.infura.io/ws/v3/9445f38252af49668e444e18b92e3520")); //new Web3.providers.HttpProvider("http://127.0.0.1:7545")); //https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520
+        var abi = [{
+            "constant": false,
+            "inputs": [],
+            "name": "deposit",
+            "outputs": [],
+            "payable": true,
+            "stateMutability": "payable",
+            "type": "function"
+        }, {
+            "payable": true,
+            "stateMutability": "payable",
+            "type": "fallback"
+        }, {
+            "anonymous": false,
+            "inputs": [{
+                "indexed": false,
+                "name": "addr",
+                "type": "address"
+            }, {
+                "indexed": false,
+                "name": "val",
+                "type": "uint256"
+            }],
+            "name": "depositEvent",
+            "type": "event"
+        }, {
+            "constant": true,
+            "inputs": [],
+            "name": "getBalance",
+            "outputs": [{
+                "name": "",
+                "type": "uint256"
+            }],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        }, {
+            "constant": true,
+            "inputs": [],
+            "name": "getTotalBalance",
+            "outputs": [{
+                "name": "",
+                "type": "uint256"
+            }],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        }];
+        var myContract = new web3.eth.Contract(abi, '0xdced77deede9284561f7f722a731b3d2aa3d16c9'); //0xdced77deede9284561f7f722a731b3d2aa3d16c9
+        //var myContractInstance = myContract.at('0xdced77deede9284561f7f722a731b3d2aa3d16c9');//0x7f34458957f8a0dcdad1d8f6e64320433379d58b
+        //var myfilter = myContractInstance.depositEvent();
+        myContract.events.allEvents(null, function(err, event) {
+            if (!err) {
+                console.log(event);
+            } else {
+                console.log(err);
+            }
+
+        });
+        /*myfilter.watch(function(err, result) {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            console.log(result);
+        });*/
+    </script>
+</head>
+
+<body>
+
+</body>
+
+</html>
