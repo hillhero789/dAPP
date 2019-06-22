@@ -1,0 +1,61 @@
+<html>
+<!--
+    获取所有特定topic的logs，然后根据logs信息，提交充值记录
+    curBlkNum指向指向当前
+
+    客户端分为两种角色，1、验证者；2、请求者：发起充值请求（ETH 转 TERA）
+    
+    功能：
+    1、askForVerify(txHash)         //ETH转账后，发出验证请求
+    2、getResult()                  //发送请求若干时间后，再次想t_sc确认是否已经完成。
+    2、verify({txHash})          //收到t_sc发送的验证请求后，执行验证
+    2、getTxData(txHash)            //验证t_sc发送的验证需求
+    3、summitData({txDataObj})      //将验证结果提交t_sc，也可能提交数据异常，如得到大多数人确认，也得到奖励
+-->
+
+<head>
+    <script>
+        var isVerifier = true; //默认为验证者
+
+        function askForVerify(txHash) {
+            isVerifier = false; //一旦提交验证请求，表示此客户端暂时不是验证者，而是请求者。
+            console.log({
+                transactionHash: txHash
+            });
+            SendCall(USER_ACCOUNT[0].Num, "broadcastVerifyReq", {
+                transactionHash: txHash
+            }, USER_ACCOUNT[0].Num);
+        }
+
+        function verify(txHash) {
+            console.log(txHash);
+        }
+
+        window.addEventListener('Event', function(e) {
+            Data = e.detail;
+            if (Data.Error)
+                SetError(Data.Description);
+            else {
+                if ("eventName" in Data.Description) {
+                    switch (Data.Description.eventName) {
+                        case "verify":
+                            verify(Data.Description.txHash);
+                            break;
+                        case "AddMe":
+                            break;
+                        case "DoEndRound":
+                            break;
+                        case "Delete":
+                            break;
+                    }
+                }
+            }
+        });
+    </script>
+</head>
+
+<body>
+    <input type="text" name="fname" id="idTxHash" /><button type="button" onclick="askForVerify(document.getElementById('idTxHash').value)">ask for verify</button>
+</body>
+
+</html>

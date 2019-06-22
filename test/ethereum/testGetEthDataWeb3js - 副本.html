@@ -3,7 +3,10 @@
 <head>
     <script src="https://web3js.b-cdn.net/web3js/web3.1.0.0-beta.37.min1111111.js"></script>
     <script>
-        web3 = new Web3(new Web3.providers.WebsocketProvider("wss://ropsten.infura.io/ws/v3/9445f38252af49668e444e18b92e3520")); //new Web3.providers.HttpProvider("http://127.0.0.1:7545")); //wss://ropsten.infura.io/ws/v3/9445f38252af49668e444e18b92e3520 //https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520
+        web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520"));
+        //new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:7545")); 
+        //new Web3(new Web3.providers.WebsocketProvider("wss://ropsten.infura.io/ws/v3/9445f38252af49668e444e18b92e3520")); 
+        //new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520")); 
         var abi = [{
             "constant": false,
             "inputs": [],
@@ -52,10 +55,17 @@
             "stateMutability": "view",
             "type": "function"
         }];
-        var myContract = new web3.eth.Contract(abi, '0x14cb336bc7be7bf5d2af4893c681faa6bb626b81'); //0xdced77deede9284561f7f722a731b3d2aa3d16c9
+        var myContract = new web3.eth.Contract(abi, '0x1e383fb63dffa5008e11ba016845d577ee9cd47b'); //0xdced77deede9284561f7f722a731b3d2aa3d16c9
         //var myContractInstance = myContract.at('0xdced77deede9284561f7f722a731b3d2aa3d16c9');//0x7f34458957f8a0dcdad1d8f6e64320433379d58b
         //var myfilter = myContractInstance.depositEvent();
+        web3.eth.getPastLogs({
+            fromBlock: 5824065,
+            toBlock: "latest",
+            address: "0x1e383fb63dffa5008e11ba016845d577ee9cd47b",
+            topics: ["0x47170ad76c9bbdb15dfbafd993321119023982de922af38d00684afaac15b8ea"]
+        }).then(console.log);
 
+        /*此段代码可以运行
         myContract.events.allEvents(null, function(err, event) {
             if (!err) {
                 console.log(event);
@@ -64,13 +74,7 @@
             }
 
         });
-        /*此段代码可以运行
-        web3.eth.getPastLogs({
-            address: "0x14cb336bc7be7bf5d2af4893c681faa6bb626b81",
-            topics: ["0x47170ad76c9bbdb15dfbafd993321119023982de922af38d00684afaac15b8ea"]
-        }).then(console.log);
         */
-
         /*myfilter.watch(function(err, result) {
             if (err) {
                 console.log(err);
