@@ -1,0 +1,1 @@
+{_EthCurBlkNum: uint,_EthTxTruncate: str10,_blkNumOfReq:uint,_isPending:byte,_isAbnormal:byte,_recVerifyCount:uint16,_verifyCount:uint16,_TeraAcc:uint,_depositCoin:uint,_depositCent:uint}

@@ -1,17 +1,4 @@
 <html>
-<!--
-    获取所有特定topic的logs，然后根据logs信息，提交充值记录
-    curBlkNum指向指向当前
-
-    客户端分为两种角色，1、验证者；2、请求者：发起充值请求（ETH 转 TERA）
-    
-    功能：
-    1、askForVerify(txHash)         //ETH转账后，发出验证请求
-    2、getResult()                  //发送请求若干时间后，再次想t_sc确认是否已经完成。
-    2、verify({txHash})          //收到t_sc发送的验证请求后，执行验证
-    2、getTxData(txHash)            //验证t_sc发送的验证需求
-    3、summitData({txDataObj})      //将验证结果提交t_sc，也可能提交数据异常，如得到大多数人确认，也得到奖励
--->
 
 <head>
     <script src="https://web3js.b-cdn.net/web3js/web3.1.0.0-beta.37.min1111111.js"></script>
@@ -83,8 +70,6 @@
                 "stateMutability": "view",
                 "type": "function"
             }];
-            //1、获取t_sc发过来的eth链上的区块号从EthCurBlkNum到最新区块的所有event logs，如果event logs多于1个，那么每次只处理1个
-            //2、将TERA账号及金额发送至t_sc
             var myContract = new web3.eth.Contract(abi, '0x2dba0827ed556f6b4660ff36912f82cd27f52479');
             var arr_i = -1;
             web3.eth.getPastLogs({
@@ -98,25 +83,13 @@
                     arr_i = idx;
                     return item.transactionHash.indexOf(eventObj.EthTxTruncate) != -1;
                 });
-                //如果arr_i是获取到的eventLogs的最后一项，则表明无新信息，否则，eventLogs的arr_i+1项就可以提交到t_sc
                 if (arr_i != -1 && arr_i + 1 < eventLogs.length) {
                     var TeraAcc = parseInt(eventLogs[arr_i + 1].data.substr(0, 66));
                     var coin = parseInt("0x" + eventLogs[arr_i + 1].data.substr(66, 64));
                     var cent = parseInt("0x" + eventLogs[arr_i + 1].data.substr(130, 64));
                     summitData(TeraAcc, coin, cent, eventLogs[arr_i + 1].blockNumber, eventLogs[arr_i + 1].transactionHash.substr(2, 10));
                 }
-                //setTimeout(testStart(), 10000);
             });
-        }
-
-        function verify2() {
-            //用类似于verify1，但不用infura作为数据源，而是使用etherscan.io作为数据源。
-            //https://api-ropsten.etherscan.io/api?module=logs&action=getLogs&fromBlock=1&toBlock=latest&address=0x56901239fea0f4c1006dce5bac578697b0f17a2b&topic0=0xd7d8672877c28d2e2e274f7c32cc3ce07304cbe6e8b4f5258d6609b553f93002&apikey=3ZBTCXNNXAVJZP27PRWM1JDR4FCRHERB16
-
-        }
-
-        function verify3() {
-            //使用ropsten: https://api.myetherwallet.com/rop  mainnet: https://api.myetherwallet.com/eth
         }
 
         window.addEventListener('Event', function(e) {
@@ -136,9 +109,6 @@
                 }
             }
         });
-
-        //setTimeout(testStart, 10000);
-
 
         function testFunc() {
             GetAccountList({

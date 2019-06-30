@@ -1,7 +1,7 @@
 <html>
 
 <head>
-    <script src="https://web3js.b-cdn.net/web3js/web3.1.0.0-beta.37.min1111111.js"></script>
+    <script src="./web3.1.0.0-beta.37.min1.js"></script>
     <script>
         web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520"));
         //new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:7545")); 
@@ -9,7 +9,10 @@
         //new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520")); 
         var abi = [{
             "constant": false,
-            "inputs": [],
+            "inputs": [{
+                "name": "TeraAccountNum",
+                "type": "uint48"
+            }],
             "name": "deposit",
             "outputs": [],
             "payable": true,
@@ -29,6 +32,10 @@
                 "indexed": false,
                 "name": "val",
                 "type": "uint256"
+            }, {
+                "indexed": false,
+                "name": "TeraAcc",
+                "type": "uint48"
             }],
             "name": "depositEvent",
             "type": "event"
@@ -55,15 +62,25 @@
             "stateMutability": "view",
             "type": "function"
         }];
-        var myContract = new web3.eth.Contract(abi, '0x1e383fb63dffa5008e11ba016845d577ee9cd47b'); //0xdced77deede9284561f7f722a731b3d2aa3d16c9
+
+        var myContract = new web3.eth.Contract(abi, '0x2dba0827ed556f6b4660ff36912f82cd27f52479'); //0xdced77deede9284561f7f722a731b3d2aa3d16c9
         //var myContractInstance = myContract.at('0xdced77deede9284561f7f722a731b3d2aa3d16c9');//0x7f34458957f8a0dcdad1d8f6e64320433379d58b
         //var myfilter = myContractInstance.depositEvent();
+        var arr_i = 0;
         web3.eth.getPastLogs({
-            fromBlock: 5824065,
+            fromBlock: 1,
             toBlock: "latest",
-            address: "0x1e383fb63dffa5008e11ba016845d577ee9cd47b",
-            topics: ["0x47170ad76c9bbdb15dfbafd993321119023982de922af38d00684afaac15b8ea"]
-        }).then(console.log);
+            address: "0x2dba0827ed556f6b4660ff36912f82cd27f52479",
+            topics: ["0xc4da2b6d2e45f545d78cf7310c4d9b3b32fdc81b08c9a5c4a6bf48a923f2dfd5"]
+        }).then(function(eventObj) {
+            console.log(eventObj);
+            eventObj.find(function(item, idx) {
+                arr_i = idx;
+                return item.transactionHash.indexOf("dbe3b6385a3113") != -1;
+            });
+            console.log(arr_i);
+        });
+
 
         /*此段代码可以运行
         myContract.events.allEvents(null, function(err, event) {
