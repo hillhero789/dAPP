@@ -1,0 +1,51 @@
+<html>
+
+<head>
+    <script src="./buffer.min.js"></script>
+    <script src="https://web3js.b-cdn.net/web3js/web3.1.0.0-beta.37.min1111111.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/ethereumjs/browser-builds/dist/ethereumjs-tx/ethereumjs-tx-1.3.3.min.js"></script>
+    <script>
+        function callEthSmartContract() {
+            //Web3 = require("web3"); 先包含这个：<script src='./web3r.js'>
+            var Tx = ethereumjs.Tx; //Tx = require("ethereumjs-tx");
+            web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520"));
+            var privateKey = new Buffer('49889DF041017F390D3FF7ABBAAFC442F52F060DC721E80AB5B8087E35FF5075', 'hex'); //[0x49, 0x88, 0x9D, 0xF0, 0x41, 0x01, 0x7F, 0x39, 0x0D, 0x3F, 0xF7, 0xAB, 0xBA, 0xAF, 0xC4, 0x42, 0xF5, 0x2F, 0x06, 0x0D, 0xC7, 0x21, 0xE8, 0x0A, 0xB5, 0xB8, 0x08, 0x7E, 0x35, 0xFF, 0x50, 0x75];
+            var _from = "0xCf7Ad231a9a4661b7aB335bBb8d40aDe8d4AE03E"; //Ropsten网
+
+            web3.eth.getTransactionCount(_from, function(err, number) {
+                if (!err) {
+                    var rawTx = {
+                        nonce: '0x' + number.toString(16), //随机数
+                        //gasPrice和gasLimit如果不知道怎么填，可以参考etherscan上的任意一笔交易的值
+                        gasPrice: '0x77359400',
+                        gasLimit: '0x295f05',
+                        to: '0x2dba0827ed556f6b4660ff36912f82cd27f52479', //接受方地址或者合约地址
+                        value: '0x2540BE400', //发送的金额，这里是16进制，单位是wei
+                        data: '0x88cae90a0000000000000000000000000000000000000000000000000000000000000124'
+                            //前8个hex位为函数的deposit(uint48)的keccak256的截断，后64个HEX位为输入参数
+                    };
+                    console.log(rawTx);
+                    //使用私钥对原始的交易信息进行签名，得到签名后的交易数据
+                    var tx = new Tx(rawTx);
+                    tx.sign(privateKey);
+
+                    var serializedTx = tx.serialize();
+                    web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'), function(err, hash) {
+                        if (!err) {
+                            console.log(hash);
+                        } else {
+                            console.log(err);
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+
+</head>
+
+<body>
+    private key:<input type="password" id="idPwd" /> Tear account number:<input type="text" id="idTeraAcc" /> deposit value: <input type="text" id="idVal" />
+    <button onclick="callEthSmartContract();">transfer eth to the contract</button> </body>
+
+</html>

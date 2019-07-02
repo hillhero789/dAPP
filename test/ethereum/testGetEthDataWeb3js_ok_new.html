@@ -1,0 +1,87 @@
+<html>
+
+<head>
+
+    <script src="https://web3js.b-cdn.net/web3js/web3.1.0.0-beta.37.min1111111.js"></script>
+    <script>
+        //Web3 = require("web3"); 先包含这个：<script src='./web3r.js'>
+        web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520"));
+        var abi = [{
+            "constant": false,
+            "inputs": [{
+                "name": "TeraAccountNum",
+                "type": "uint48"
+            }],
+            "name": "deposit",
+            "outputs": [],
+            "payable": true,
+            "stateMutability": "payable",
+            "type": "function"
+        }, {
+            "payable": true,
+            "stateMutability": "payable",
+            "type": "fallback"
+        }, {
+            "anonymous": false,
+            "inputs": [{
+                "indexed": false,
+                "name": "addr",
+                "type": "address"
+            }, {
+                "indexed": false,
+                "name": "val",
+                "type": "uint256"
+            }, {
+                "indexed": false,
+                "name": "TeraAcc",
+                "type": "uint48"
+            }],
+            "name": "depositEvent",
+            "type": "event"
+        }, {
+            "constant": true,
+            "inputs": [],
+            "name": "getBalance",
+            "outputs": [{
+                "name": "",
+                "type": "uint256"
+            }],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        }, {
+            "constant": true,
+            "inputs": [],
+            "name": "getTotalBalance",
+            "outputs": [{
+                "name": "",
+                "type": "uint256"
+            }],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        }];
+
+        var myContract = new web3.eth.Contract(abi, '0x2dba0827ed556f6b4660ff36912f82cd27f52479');
+        var arr_i = 0;
+        web3.eth.getPastLogs({
+            fromBlock: 1,
+            toBlock: "latest",
+            address: "0x2dba0827ed556f6b4660ff36912f82cd27f52479",
+            topics: ["0xc4da2b6d2e45f545d78cf7310c4d9b3b32fdc81b08c9a5c4a6bf48a923f2dfd5"]
+        }).then(function(eventObj) {
+            console.log(eventObj);
+            eventObj.find(function(item, idx) {
+                arr_i = idx;
+                return item.transactionHash.indexOf("dbe3b6385a3113") != -1;
+            });
+            console.log(arr_i);
+        });
+    </script>
+</head>
+
+<body>
+
+</body>
+
+</html>

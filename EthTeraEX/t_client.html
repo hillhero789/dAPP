@@ -24,6 +24,7 @@
                 EthCurBlkNum: EthBlkNum,
                 EthTxTruncate: hashTruncate
             }, USER_ACCOUNT[0].Num);
+            console.log("summitData:");
             console.log({
                 TeraAccNum: TeraAcc,
                 coinNum: coin,
@@ -93,6 +94,7 @@
                 address: "0x2dba0827ed556f6b4660ff36912f82cd27f52479",
                 topics: ["0xc4da2b6d2e45f545d78cf7310c4d9b3b32fdc81b08c9a5c4a6bf48a923f2dfd5"]
             }).then(function(eventLogs) {
+                console.log("eventLogs:");
                 console.log(eventLogs);
                 eventLogs.find(function(item, idx) {
                     arr_i = idx;
@@ -104,6 +106,9 @@
                     var coin = parseInt("0x" + eventLogs[arr_i + 1].data.substr(66, 64));
                     var cent = parseInt("0x" + eventLogs[arr_i + 1].data.substr(130, 64));
                     summitData(TeraAcc, coin, cent, eventLogs[arr_i + 1].blockNumber, eventLogs[arr_i + 1].transactionHash.substr(2, 10));
+                } else {
+                    summitData(0, 0, 0, eventLogs[eventLogs.length - 1].blockNumber, eventLogs[eventLogs.length - 1].transactionHash.substr(2, 10));
+                    //如已无数据提交，则提交最后一条交易记录，并且TERA账号，金额均置0，避免攻击者利用无提交窗口，提交虚假数据
                 }
                 //setTimeout(testStart(), 10000);
             });
@@ -130,6 +135,7 @@
                             verify1(Data.Description);
                             break;
                         case "info":
+                            console.log("Event:");
                             console.log(Data.Description);
                             break;
                     }
@@ -146,6 +152,7 @@
                 CountNum: 1
             }, function(Err1, Arr1) {
                 if (!Err1) {
+                    console.log("GetAccountList:");
                     console.log(Arr1);
                 }
             });

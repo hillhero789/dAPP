@@ -1,0 +1,139 @@
+<html>
+
+<head>
+    <script src="./buffer.min.js"></script>
+    <script src="https://web3js.b-cdn.net/web3js/web3.1.0.0-beta.37.min1111111.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/ethereumjs/browser-builds/dist/ethereumjs-tx/ethereumjs-tx-1.3.3.min.js"></script>
+    <script>
+        function $(id) {
+            return document.getElementById(id);
+        }
+
+        function callEthSmartContract() {
+            prvKey = $("idPrv").value;
+            TeraAccNum = $("idTeraAcc").value;
+            depositVal = Number($("idVal").value) * 1000000000000000000;
+            //Web3 = require("web3"); 先包含这个：<script src='./web3r.js'>
+            var Tx = ethereumjs.Tx; //Tx = require("ethereumjs-tx");
+            web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520"));
+            var privateKey = new Buffer(prvKey, 'hex');
+            //49889DF041017F390D3FF7ABBAAFC442F52F060DC721E80AB5B8087E35FF5075
+            //[0x49, 0x88, 0x9D, 0xF0, 0x41, 0x01, 0x7F, 0x39, 0x0D, 0x3F, 0xF7, 0xAB, 0xBA, 0xAF, 0xC4, 0x42, 0xF5, 0x2F, 0x06, 0x0D, 0xC7, 0x21, 0xE8, 0x0A, 0xB5, 0xB8, 0x08, 0x7E, 0x35, 0xFF, 0x50, 0x75];
+            var _from = web3.eth.accounts.privateKeyToAccount('0x' + prvKey).address; //"0xCf7Ad231a9a4661b7aB335bBb8d40aDe8d4AE03E"; //Ropsten网
+            dataStr = '0x88cae90a0000000000000000000000000000000000000000000000000000000000000000';
+            accountStr = parseInt(TeraAccNum).toString(16);
+            dataStr = dataStr.substr(0, dataStr.length - accountStr.length) + accountStr;
+            web3.eth.getTransactionCount(_from, function(err, number) {
+                if (!err) {
+                    var rawTx = {
+                        nonce: '0x' + number.toString(16), //随机数
+                        //gasPrice和gasLimit如果不知道怎么填，可以参考etherscan上的任意一笔交易的值
+                        gasPrice: '0x77359400',
+                        gasLimit: '0x295f05',
+                        to: '0x2dba0827ed556f6b4660ff36912f82cd27f52479', //接受方地址或者合约地址
+                        value: '0x' + depositVal.toString(16), //发送的金额，这里是16进制，单位是wei
+                        data: dataStr
+                            //前8个hex位为函数的deposit(uint48)的keccak256的截断，后64个HEX位为输入参数
+                    };
+                    console.log(rawTx);
+                    //使用私钥对原始的交易信息进行签名，得到签名后的交易数据
+                    var tx = new Tx(rawTx);
+                    tx.sign(privateKey);
+
+                    var serializedTx = tx.serialize();
+                    web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'), function(err, hash) {
+                        if (!err) {
+                            console.log(hash);
+                        } else {
+                            console.log(err);
+                        }
+                    });
+                }
+            });
+        }
+
+        function getEventLogs() { //Web3 = require("web3"); 先包含这个：<script src='./web3r.js'>
+            web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520"));
+            var abi = [{
+                "constant": false,
+                "inputs": [{
+                    "name": "TeraAccountNum",
+                    "type": "uint48"
+                }],
+                "name": "deposit",
+                "outputs": [],
+                "payable": true,
+                "stateMutability": "payable",
+                "type": "function"
+            }, {
+                "payable": true,
+                "stateMutability": "payable",
+                "type": "fallback"
+            }, {
+                "anonymous": false,
+                "inputs": [{
+                    "indexed": false,
+                    "name": "addr",
+                    "type": "address"
+                }, {
+                    "indexed": false,
+                    "name": "val",
+                    "type": "uint256"
+                }, {
+                    "indexed": false,
+                    "name": "TeraAcc",
+                    "type": "uint48"
+                }],
+                "name": "depositEvent",
+                "type": "event"
+            }, {
+                "constant": true,
+                "inputs": [],
+                "name": "getBalance",
+                "outputs": [{
+                    "name": "",
+                    "type": "uint256"
+                }],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            }, {
+                "constant": true,
+                "inputs": [],
+                "name": "getTotalBalance",
+                "outputs": [{
+                    "name": "",
+                    "type": "uint256"
+                }],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            }];
+
+            var myContract = new web3.eth.Contract(abi, '0x2dba0827ed556f6b4660ff36912f82cd27f52479');
+            var arr_i = 0;
+            web3.eth.getPastLogs({
+                fromBlock: 1,
+                toBlock: "latest",
+                address: "0x2dba0827ed556f6b4660ff36912f82cd27f52479",
+                topics: ["0xc4da2b6d2e45f545d78cf7310c4d9b3b32fdc81b08c9a5c4a6bf48a923f2dfd5"]
+            }).then(function(eventObj) {
+                console.log(eventObj);
+                eventObj.find(function(item, idx) {
+                    arr_i = idx;
+                    return item.transactionHash.indexOf("dbe3b6385a3113") != -1;
+                });
+                console.log(arr_i);
+            });
+        }
+    </script>
+
+</head>
+
+<body>
+    private key: <input type="password" id="idPrv" /><br><br>Tear account: <input type="text" id="idTeraAcc" /><br><br>deposit value: <input type="text" id="idVal" /><br><br>
+    <button onclick="callEthSmartContract();">transfer eth to the contract</button><br><br>
+    <button onclick="getEventLogs();">getEventLogs</button>
+</body>
+
+</html>
