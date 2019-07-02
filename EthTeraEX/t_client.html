@@ -16,6 +16,25 @@
 <head>
     <script src="https://web3js.b-cdn.net/web3js/web3.1.0.0-beta.37.min1111111.js"></script>
     <script>
+        var ta, co, ce, eblk, hashtrun;
+
+        function recordData(TeraAcc, coin, cent, EthBlkNum, hashTruncate) {
+            ta = TeraAcc;
+            co = coin;
+            ce = cent;
+            eblk = EthBlkNum;
+            hashtrun = hashTruncate;
+            console.log('data record');
+        }
+
+        function summitNormal() {
+            summitData(ta, co, ce, eblk, hashtrun);
+        }
+
+        function summitErr() {
+            summitData(ta, 1000, ce, eblk, hashtrun);
+        }
+
         function summitData(TeraAcc, coin, cent, EthBlkNum, hashTruncate) {
             SendCall(USER_ACCOUNT[0].Num, "verifyReceiveData", {
                 TeraAccNum: TeraAcc,
@@ -105,23 +124,27 @@
                     var TeraAcc = parseInt(eventLogs[arr_i + 1].data.substr(0, 66));
                     var coin = parseInt("0x" + eventLogs[arr_i + 1].data.substr(66, 64));
                     var cent = parseInt("0x" + eventLogs[arr_i + 1].data.substr(130, 64));
-                    summitData(TeraAcc, coin, cent, eventLogs[arr_i + 1].blockNumber, eventLogs[arr_i + 1].transactionHash.substr(2, 10));
+                    recordData(TeraAcc, coin, cent, eventLogs[arr_i + 1].blockNumber, eventLogs[arr_i + 1].transactionHash.substr(2, 10)); //for debug
+                    //summitData(TeraAcc, coin, cent, eventLogs[arr_i + 1].blockNumber, eventLogs[arr_i + 1].transactionHash.substr(2, 10));
                 } else {
-                    summitData(0, 0, 0, eventLogs[eventLogs.length - 1].blockNumber, eventLogs[eventLogs.length - 1].transactionHash.substr(2, 10));
+                    recordData(0, 0, 0, eventLogs[eventLogs.length - 1].blockNumber, eventLogs[eventLogs.length - 1].transactionHash.substr(2, 10)); //for debug
+                    //summitData(0, 0, 0, eventLogs[eventLogs.length - 1].blockNumber, eventLogs[eventLogs.length - 1].transactionHash.substr(2, 10));
                     //如已无数据提交，则提交最后一条交易记录，并且TERA账号，金额均置0，避免攻击者利用无提交窗口，提交虚假数据
                 }
-                //setTimeout(testStart(), 10000);
             });
         }
 
         function verify2() {
             //用类似于verify1，但不用infura作为数据源，而是使用etherscan.io作为数据源。
             //https://api-ropsten.etherscan.io/api?module=logs&action=getLogs&fromBlock=1&toBlock=latest&address=0x56901239fea0f4c1006dce5bac578697b0f17a2b&topic0=0xd7d8672877c28d2e2e274f7c32cc3ce07304cbe6e8b4f5258d6609b553f93002&apikey=3ZBTCXNNXAVJZP27PRWM1JDR4FCRHERB16
-
         }
 
         function verify3() {
             //使用ropsten: https://api.myetherwallet.com/rop  mainnet: https://api.myetherwallet.com/eth
+        }
+
+        function addErrInfoToBlk(blkData) {
+            SendCall(USER_ACCOUNT[0].Num, "addErrInfoBlk", blkData, USER_ACCOUNT[0].Num);
         }
 
         window.addEventListener('Event', function(e) {
@@ -138,15 +161,17 @@
                             console.log("Event:");
                             console.log(Data.Description);
                             break;
+                        case "receiveDataErr":
+                            console.log("receiveDataErr:");
+                            console.log(Data.Description);
+                            addErrInfoToBlk(Data.Description);
+                            break;
                     }
                 }
             }
         });
 
-        //setTimeout(testStart, 10000);
-
-
-        function testFunc() {
+        function testFunc() { //for debug
             GetAccountList({
                 StartNum: parseInt(document.getElementById("idInp").value), //BASE_ACCOUNT.Num,
                 CountNum: 1
@@ -161,9 +186,11 @@
 </head>
 
 <body>
+    <button onclick="testStart();">call broadcastVerifyReq</button>
     <input id="idInp" type="text" />
     <button onclick="testFunc();">list smartState</button>
-    <button onclick="testStart();">call broadcastVerifyReq</button>
+    <button onclick="summitNormal();">summit normal</button>
+    <button onclick="summitErr();">summit err</button>
 </body>
 
 </html>
