@@ -43,29 +43,6 @@ function sendCoins(smartState) {
 
 }
 
-function checkIfLastEnd(smartState) {
-    var minVerifyCount = 2;
-    if (smartState._isPending) {
-        if (context.BlockNum - smartState._blkNumOfReq > 100) { //表示当前交易验证时间窗口已结束。
-            //将_isPending置false，同时判断是否存在异常，如无异常，则发送TETH至账户
-            if (smartState._recVerifyCount >= minVerifyCount) { //验证次数满足最低要求，则认为结果可以接受
-                sendCoins(smartState);
-            } else {
-                //验证失败，需将信息记录到区块
-            }
-            smartState._isPending = false;
-            smartState._TeraAcc = 0; //转账后恢复待验证数据至初始状态
-            smartState._depositCoin = 0;
-            smartState._depositCent = 0;
-            smartState._recVerifyCount = 0;
-            WriteState(smartState);
-        } else {
-            return false;
-        }
-    }
-    return true;
-}
-
 function checkIfDaoOp() { //检查是否为DAO操作
     var DAO = 0; //DAO合约账号，暂时未确定
     if (context.Account.Num == DAO) {
@@ -83,19 +60,19 @@ function verifyReceiveData(Params) {
     CheckPermission();
     var smartState = ReadState(context.Smart.Account);
     if (smartState._isAbnormal) {
-        throw "verifyReceiveData:The smart contract is locked due to abnormal state!";
+        throw "State abnormal, please wait for the next round";
     }
     var clientState = ReadState(context.Account.Num);
-    if (clientState._blkNumOfReq <= smartState._blkNumOfReq + 100 && clientState._blkNumOfReq >= smartState._blkNumOfReq) {
-        throw "repeated commit is forbidden"; //重复提交可能是恶意行为，可增加锁定账户的操作。
-    }
     if (smartState._isPending && context.BlockNum - smartState._blkNumOfReq <= 100) {
-        if (smartState._EthCurBlkNum == 5905802) { //表示本次提交为首次提交的数据
+        if (clientState._blkNumOfReq <= smartState._blkNumOfReq + 100 && clientState._blkNumOfReq >= smartState._blkNumOfReq) {
+            throw "repeated commit is forbidden"; //重复提交可能是恶意行为，可增加锁定账户的操作。
+        }
+        if (smartState._recVerifyCount == 0) { //首次接收的数据，不立即改_EthCurBlkNum、_EthTxTruncate，先临时存放，等到确认数据有效后再正式保存
             smartState._TeraAcc = Params.TeraAccNum;
             smartState._depositCoin = Params.coinNum;
             smartState._depositCent = Params.centNum;
-            smartState._EthCurBlkNum = Params.EthCurBlkNum;
-            smartState._EthTxTruncate = Params.EthTxTruncate;
+            smartState._EthCurBlkNum_t = Params.EthCurBlkNum; //先临时保存
+            smartState._EthTxTruncate_t = Params.EthTxTruncate; //先临时保存
             smartState._recVerifyCount++;
             smartState._totalRecVerifyCount++;
 
@@ -103,21 +80,26 @@ function verifyReceiveData(Params) {
             clientState._verifyCount++;
             WriteState(clientState);
         } else {
-            if (smartState._TeraAcc == Params.TeraAccNum && smartState._depositCoin == Params.coinNum && smartState._depositCent == Params.centNum && smartState._EthCurBlkNum == Params.EthCurBlkNum && smartState._EthTxTruncate == Params.EthTxTruncate) {
+            if (smartState._TeraAcc == Params.TeraAccNum && smartState._depositCoin == Params.coinNum && smartState._depositCent == Params.centNum && smartState._EthCurBlkNum_t == Params.EthCurBlkNum && smartState._EthTxTruncate_t == Params.EthTxTruncate) {
                 //收到的信息与之前记录的信息一致
                 if (smartState._TeraAcc != 0) { //TeraAcc为0，代表此提交仅为防止作恶提交，无需统计，避免刷分
                     smartState._recVerifyCount++;
                     smartState._totalRecVerifyCount++;
+
+                    clientState._blkNumOfReq = context.BlockNum;
                     clientState._verifyCount++;
                     WriteState(clientState);
                 }
             } else { //信息不一致，将信息发送到客户端，让客户端调用sendcall，将异常信息写入区块。
+                smartState._isAbnormal = true;
+                smartState._abnormalInfoRecordAcc = context.FromNum;
                 Event({ //上一个验证尚未完成
                     eventName: "receiveDataErr",
                     preBlk: smartState._abnormalInfoBlkHead,
                     preTr: smartState._abnormalInfoTrHead,
+                    msgToAcc: context.FromNum,
                     msg: {
-                        summitAccountNum: context.FromNum,
+                        commitAccountNum: context.FromNum,
                         smart_TeraAcc: smartState._TeraAcc,
                         smart_coin: smartState._depositCoin,
                         smart_cent: smartState._depositCent,
@@ -138,14 +120,36 @@ function verifyReceiveData(Params) {
     }
 }
 
+function checkIfLastEnd(smartState) {
+    var minVerifyCount = 2;
+    if (context.BlockNum - smartState._blkNumOfReq > 100) { //表示当前交易验证时间窗口已结束。
+        //将_isPending置false，同时判断是否存在异常，如无异常，则发送TETH至账户
+        if (smartState._recVerifyCount >= minVerifyCount && !smartState._isAbnormal) { //验证次数满足最低要求，则认为结果可以接受
+            smartState._EthCurBlkNum = smartState._EthCurBlkNum_t; //确认无异常正式修改
+            smartState._EthTxTruncate = smartState._EthTxTruncate_t; //确认无异常正式修改
+            sendCoins(smartState);
+        } else {
+            //验证失败，需将信息记录到区块
+        }
+        smartState._isAbnormal = false; //上一局已结束，清楚异常标记
+        smartState._isPending = false;
+        smartState._TeraAcc = 0; //转账后恢复待验证数据至初始状态
+        smartState._depositCoin = 0;
+        smartState._depositCent = 0;
+        smartState._recVerifyCount = 0;
+        WriteState(smartState);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 "public"
 
 function broadcastVerifyReq() { //如果目前不在验证中，则广播消息到所有客户端
     CheckPermission();
     var smartState = ReadState(context.Smart.Account);
-    if (smartState._isAbnormal) {
-        throw "broadcastVerifyReq:The smart contract is locked due to abnormal state!";
-    }
+
     if (checkIfLastEnd(smartState)) { //上一个验证已结束
         smartState._isPending = true;
         smartState._blkNumOfReq = context.BlockNum; //记录发起验证请求时的Tera块号
@@ -168,9 +172,7 @@ function broadcastVerifyReq() { //如果目前不在验证中，则广播消息�
 function addErrInfoBlk(Params) {
     CheckPermission();
     var smartState = ReadState(context.Smart.Account);
-    if (smartState._abnormalInfoBlkHead == context.BlockNum) {
-        throw "err info has been record!";
-    } else {
+    if (smartState._abnormalInfoRecordAcc == context.FromNum) {
         smartState._abnormalInfoBlkHead = context.BlockNum;
         smartState._abnormalInfoTrHead = context.TrNum;
         WriteState(smartState);
@@ -179,14 +181,13 @@ function addErrInfoBlk(Params) {
             msg: Params
         });
     }
-
 }
 
 
 function OnCreate() { //初始化smartState
     var smartState = ReadState(context.Smart.Account);
     smartState._EthCurBlkNum = 5905802;
-    smartState._EthTxTruncate = "4e09a265df";
+    smartState._EthTxTruncate = "4e09a2";
     smartState._blkNumOfReq = 0;
     smartState._isPending = false;
     smartState._isAbnormal = false
@@ -197,6 +198,7 @@ function OnCreate() { //初始化smartState
     smartState._depositCent = 0;
     smartState._abnormalInfoBlkHead = 0;
     smartState._abnormalInfoTrHead = 0;
+    smartState._abnormalInfoRecordAcc = 0;
     WriteState(smartState);
 }
 

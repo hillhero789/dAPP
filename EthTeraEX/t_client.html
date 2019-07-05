@@ -10,13 +10,19 @@
     2、getResult()                  //发送请求若干时间后，再次想t_sc确认是否已经完成。
     2、verify({txHash})          //收到t_sc发送的验证请求后，执行验证
     2、getTxData(txHash)            //验证t_sc发送的验证需求
-    3、summitData({txDataObj})      //将验证结果提交t_sc，也可能提交数据异常，如得到大多数人确认，也得到奖励
+    3、commitData({txDataObj})      //将验证结果提交t_sc，也可能提交数据异常，如得到大多数人确认，也得到奖励
 -->
 
 <head>
     <script src="https://web3js.b-cdn.net/web3js/web3.1.0.0-beta.37.min1111111.js"></script>
     <script>
         var ta, co, ce, eblk, hashtrun;
+
+        function randDelay() {
+            //随机延迟一段时间在提交数据，避免所有客户端同时提交数据，
+            //如都在一个区块内被处理，则stateformat可能被攻击者成功记录错误数据
+
+        }
 
         function recordData(TeraAcc, coin, cent, EthBlkNum, hashTruncate) {
             ta = TeraAcc;
@@ -27,15 +33,15 @@
             console.log('data record');
         }
 
-        function summitNormal() {
-            summitData(ta, co, ce, eblk, hashtrun);
+        function commitNormal() {
+            commitData(ta, co, ce, eblk, hashtrun);
         }
 
-        function summitErr() {
-            summitData(ta, 1000, ce, eblk, hashtrun);
+        function commitErr() {
+            commitData(ta, 1000, ce, eblk, hashtrun);
         }
 
-        function summitData(TeraAcc, coin, cent, EthBlkNum, hashTruncate) {
+        function commitData(TeraAcc, coin, cent, EthBlkNum, hashTruncate) {
             SendCall(USER_ACCOUNT[0].Num, "verifyReceiveData", {
                 TeraAccNum: TeraAcc,
                 coinNum: coin,
@@ -43,7 +49,7 @@
                 EthCurBlkNum: EthBlkNum,
                 EthTxTruncate: hashTruncate
             }, USER_ACCOUNT[0].Num);
-            console.log("summitData:");
+            console.log("commitData:");
             console.log({
                 TeraAccNum: TeraAcc,
                 coinNum: coin,
@@ -107,6 +113,7 @@
             //2、将TERA账号及金额发送至t_sc
             var myContract = new web3.eth.Contract(abi, '0x2dba0827ed556f6b4660ff36912f82cd27f52479');
             var arr_i = -1;
+            //eventObj.EthCurBlkNum = eventObj.EthCurBlkNum == 0 ? 1 : eventObj.EthCurBlkNum;
             web3.eth.getPastLogs({
                 fromBlock: eventObj.EthCurBlkNum,
                 toBlock: "latest",
@@ -124,11 +131,11 @@
                     var TeraAcc = parseInt(eventLogs[arr_i + 1].data.substr(0, 66));
                     var coin = parseInt("0x" + eventLogs[arr_i + 1].data.substr(66, 64));
                     var cent = parseInt("0x" + eventLogs[arr_i + 1].data.substr(130, 64));
-                    recordData(TeraAcc, coin, cent, eventLogs[arr_i + 1].blockNumber, eventLogs[arr_i + 1].transactionHash.substr(2, 10)); //for debug
-                    //summitData(TeraAcc, coin, cent, eventLogs[arr_i + 1].blockNumber, eventLogs[arr_i + 1].transactionHash.substr(2, 10));
+                    recordData(TeraAcc, coin, cent, eventLogs[arr_i + 1].blockNumber, eventLogs[arr_i + 1].transactionHash.substr(2, 6)); //for debug
+                    //commitData(TeraAcc, coin, cent, eventLogs[arr_i + 1].blockNumber, eventLogs[arr_i + 1].transactionHash.substr(2, 10));
                 } else {
-                    recordData(0, 0, 0, eventLogs[eventLogs.length - 1].blockNumber, eventLogs[eventLogs.length - 1].transactionHash.substr(2, 10)); //for debug
-                    //summitData(0, 0, 0, eventLogs[eventLogs.length - 1].blockNumber, eventLogs[eventLogs.length - 1].transactionHash.substr(2, 10));
+                    recordData(0, 0, 0, eventLogs[eventLogs.length - 1].blockNumber, eventLogs[eventLogs.length - 1].transactionHash.substr(2, 6)); //for debug
+                    //commitData(0, 0, 0, eventLogs[eventLogs.length - 1].blockNumber, eventLogs[eventLogs.length - 1].transactionHash.substr(2, 10));
                     //如已无数据提交，则提交最后一条交易记录，并且TERA账号，金额均置0，避免攻击者利用无提交窗口，提交虚假数据
                 }
             });
@@ -144,6 +151,10 @@
         }
 
         function addErrInfoToBlk(blkData) {
+            //shaArr = sha3(JSON.stringify(blkData));
+            //blkData.sha = shaArr.slice(0, 10);
+            //console.log("blkData");
+            //console.log(blkData);
             SendCall(USER_ACCOUNT[0].Num, "addErrInfoBlk", blkData, USER_ACCOUNT[0].Num);
         }
 
@@ -163,8 +174,10 @@
                             break;
                         case "receiveDataErr":
                             console.log("receiveDataErr:");
-                            console.log(Data.Description);
-                            addErrInfoToBlk(Data.Description);
+                            if (USER_ACCOUNT[0].Num == Data.Description.msgToAcc) {
+                                console.log(Data.Description);
+                                addErrInfoToBlk(Data.Description);
+                            }
                             break;
                     }
                 }
@@ -189,8 +202,8 @@
     <button onclick="testStart();">call broadcastVerifyReq</button>
     <input id="idInp" type="text" />
     <button onclick="testFunc();">list smartState</button>
-    <button onclick="summitNormal();">summit normal</button>
-    <button onclick="summitErr();">summit err</button>
+    <button onclick="commitNormal();">commit normal</button>
+    <button onclick="commitErr();">commit err</button>
 </body>
 
 </html>

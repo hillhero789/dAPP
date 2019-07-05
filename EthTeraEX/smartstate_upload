@@ -1,21 +1,25 @@
-{_EthCurBlkNum: uint,_EthTxTruncate: str10,_blkNumOfReq:uint,_isPending:byte,_isAbnormal:byte,_recVerifyCount:uint16,_totalRecVerifyCount:uint,_verifyCount:uint16,_TeraAcc:uint,_depositCoin:uint,_depositCent:uint,_abnormalInfoBlkHead:uint,_abnormalInfoTrHead:uint}
-
-
+//用jscompress.com压缩后，注意仅保留{...}内容
 var stateFormat = {
-    _EthCurBlkNum: uint, //最近已完成的最后一笔交易的block号
-    _EthTxTruncate: str10, //最近已完成的最后一个交易哈希截断
-    _blkNumOfReq: uint, //记录“请求者”发起验证请求时的Tera块号
-    _isPending: byte, //判断本次充值是否已经完成
-    _isAbnormal: byte, //收到客户端的验证数据与当前记录状态不一致时，记录异常合约锁定
-    _recVerifyCount: uint16, //收到的验证次数
-    _totalRecVerifyCount: uint, //累计收到的总验证数量
-    _verifyCount: uint16, //用户提交次数
 
-    //以下是用于记录验证者提交的数据，包括本次充值的TERA地址及充值金额。
-    _TeraAcc: uint,
-    _depositCoin: uint, //此数量为发放的TETH数量的整数部分
-    _depositCent: uint, //此数量为发放的TETH数量的小数部分，最小为十亿分之一（1GWEI），小于此数的充值被忽略
+    _blkNumOfReq: uint, //记录“请求者”发起验证请求时的Tera块号                              6
+    _isPending: byte, //判断本次充值是否已经完成                                            1
+    _isAbnormal: byte, //收到客户端的验证数据与当前记录状态不一致时，记录异常合约锁定           1
+    _recVerifyCount: uint16, //收到的验证次数                                               2
+    _totalRecVerifyCount: uint, //累计收到的总验证数量                                      6
+    _verifyCount: uint16, //用户提交次数                                                    2
 
-    _abnormalInfoBlkHead: uint,
-    _abnormalInfoTrHead: uint
+    //以下为重要数据
+    _EthCurBlkNum: uint, //最近已完成的最后一笔交易的block号                                6
+    _EthTxTruncate: str6, //最近已完成的最后一个交易哈希截断                               6
+    _EthCurBlkNum_t:uint, //临时保存
+    _EthTxTruncate_t: str6, //临时保存
+    //以下是用于记录验证者提交的数据，包括本次充值的TERA地址及充值金额。                        
+    _TeraAcc: uint,                                                                         
+    _depositCoin: uint, //此数量为发放的TETH数量的整数部分                                      6
+    _depositCent: uint, //此数量为发放的TETH数量的小数部分，最小为十亿分之一（1GWEI），小于此数的充值被忽略    6
+
+    _abnormalInfoBlkHead: uint,                                                             
+    _abnormalInfoTrHead: uint16,                                                                
+    _abnormalInfoRecordAcc: uint
 };
+//用jscompress.com压缩后，注意仅保留{...}内容
