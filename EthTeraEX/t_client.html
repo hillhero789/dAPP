@@ -14,14 +14,60 @@
 -->
 
 <head>
-    <script src="https://web3js.b-cdn.net/web3js/web3.1.0.0-beta.37.min1111111.js"></script>
-    <script>
+    <script type="text/javascript" src="https://ucarecdn.com/3d1dbfd6-11de-467c-b0b2-895906c798c1/"></script>
+    <script type="text/javascript">
         var ta, co, ce, eblk, hashtrun;
+        var abi = [{
+            "constant": false,
+            "inputs": [{
+                "name": "TeraAccountNum",
+                "type": "uint48"
+            }],
+            "name": "deposit",
+            "outputs": [],
+            "payable": true,
+            "stateMutability": "payable",
+            "type": "function"
+        }, {
+            "payable": true,
+            "stateMutability": "payable",
+            "type": "fallback"
+        }, {
+            "anonymous": false,
+            "inputs": [{
+                "indexed": false,
+                "name": "TeraAcc",
+                "type": "uint48"
+            }, {
+                "indexed": false,
+                "name": "coins",
+                "type": "uint256"
+            }, {
+                "indexed": false,
+                "name": "cents",
+                "type": "uint256"
+            }],
+            "name": "depositEvent",
+            "type": "event"
+        }, {
+            "constant": true,
+            "inputs": [],
+            "name": "getTotalBalance",
+            "outputs": [{
+                "name": "",
+                "type": "uint256"
+            }],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        }];
 
-        function randDelay() {
+        function randDelayCommitNormal() {
             //随机延迟一段时间在提交数据，避免所有客户端同时提交数据，
             //如都在一个区块内被处理，则stateformat可能被攻击者成功记录错误数据
-
+            setTimeout(function() {
+                commitNormal();
+            }, Math.random() * 3000);
         }
 
         function recordData(TeraAcc, coin, cent, EthBlkNum, hashTruncate) {
@@ -38,7 +84,9 @@
         }
 
         function commitErr() {
-            commitData(ta, 1000, ce, eblk, hashtrun);
+            if ($("idCB").checked) {
+                commitData(ta, 1000, ce, eblk, hashtrun);
+            }
         }
 
         function commitData(TeraAcc, coin, cent, EthBlkNum, hashTruncate) {
@@ -59,56 +107,96 @@
             });
         }
 
-        function testStart() {
+        function verifyReq() {
             SendCall(USER_ACCOUNT[0].Num, "broadcastVerifyReq", {}, USER_ACCOUNT[0].Num);
         }
 
-        function verify1(eventObj) {
+        function showBalance() {
+            var prvKey = $("idPrv").value.trim();
+            if (prvKey.length != 64 || /[^0123456789ABCDEF]/.test(prvKey.toUpperCase())) {
+                $("idSpan").innerText = "wrong private key!";
+                return;
+            }
+            var web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520"));
+            var _from = web3.eth.accounts.privateKeyToAccount('0x' + prvKey).address;
+            web3.eth.getBalance(_from, function(err, bl) {
+                $("idSpan").innerText = parseFloat(bl) / 1000000000000000000 + ' ETH';
+            });
+        }
+
+        function callEthSmartContract() {
+            $("idSpanMsg1").innerText = "Pending...";
+            prvKey = $("idPrv").value.trim();
+            if (prvKey.length != 64 || /[^0123456789ABCDEF]/.test(prvKey.toUpperCase())) {
+                $("idSpan").innerText = "wrong private key!";
+                return;
+            }
+            TeraAccNum = $("idTeraAcc").value;
+            depositVal = Number($("idVal").value) * 1000000000000000000;
             web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520"));
-            var abi = [{
-                "constant": false,
-                "inputs": [{
-                    "name": "TeraAccountNum",
-                    "type": "uint48"
-                }],
-                "name": "deposit",
-                "outputs": [],
-                "payable": true,
-                "stateMutability": "payable",
-                "type": "function"
-            }, {
-                "payable": true,
-                "stateMutability": "payable",
-                "type": "fallback"
-            }, {
-                "anonymous": false,
-                "inputs": [{
-                    "indexed": false,
-                    "name": "TeraAcc",
-                    "type": "uint48"
-                }, {
-                    "indexed": false,
-                    "name": "coins",
-                    "type": "uint256"
-                }, {
-                    "indexed": false,
-                    "name": "cents",
-                    "type": "uint256"
-                }],
-                "name": "depositEvent",
-                "type": "event"
-            }, {
-                "constant": true,
-                "inputs": [],
-                "name": "getTotalBalance",
-                "outputs": [{
-                    "name": "",
-                    "type": "uint256"
-                }],
-                "payable": false,
-                "stateMutability": "view",
-                "type": "function"
-            }];
+            //私钥：//49889DF041017F390D3FF7ABBAAFC442F52F060DC721E80AB5B8087E35FF5075
+            var _from = web3.eth.accounts.privateKeyToAccount('0x' + prvKey).address; //"0xCf7Ad231a9a4661b7aB335bBb8d40aDe8d4AE03E"; //Ropsten网
+
+            dataStr = '0x88cae90a0000000000000000000000000000000000000000000000000000000000000000';
+            accountStr = parseInt(TeraAccNum).toString(16);
+            dataStr = dataStr.substr(0, dataStr.length - accountStr.length) + accountStr;
+            web3.eth.getTransactionCount(_from, function(err, number) {
+                if (!err) {
+                    var rawTx = {
+                        nonce: '0x' + number.toString(16), //随机数
+                        //gasPrice和gasLimit如果不知道怎么填，可以参考etherscan上的任意一笔交易的值
+                        gasPrice: '0x1DCD65000', //8 Gwei
+                        gasLimit: '0x295f05',
+                        to: '0x2dba0827ed556f6b4660ff36912f82cd27f52479', //接受方地址或者合约地址
+                        value: '0x' + depositVal.toString(16), //发送的金额，这里是16进制，单位是wei
+                        data: dataStr //前8个hex位为函数的deposit(uint48)的keccak256的截断，后64个HEX位为输入参数
+                    };
+                    console.log(rawTx);
+                    signPromise = web3.eth.accounts.signTransaction(rawTx, '0x' + prvKey);
+                    signPromise.then(function(signedTx) {
+                        sentTx = web3.eth.sendSignedTransaction(signedTx.raw || signedTx.rawTransaction);
+                        sentTx.on("receipt", function(receipt) {
+                            $("idSpanMsg1").innerText = "Success";
+                            console.log(receipt);
+                        });
+                        sentTx.on("error", function(err) {
+                            $("idSpanMsg1").innerText = "Error";
+                            console.log(err);
+                        });
+                    }).catch(function(err) {
+                        $("idSpanMsg1").innerText = "Error";
+                        console.log(err);
+                    });
+                }
+            });
+        }
+
+        function getEventLogs() { //Web3 = require("web3"); 先包含这个：<script src='./web3r.js'>
+            web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520"));
+            var myContract = new web3.eth.Contract(abi, '0x2dba0827ed556f6b4660ff36912f82cd27f52479');
+            var arr_i = 0;
+            web3.eth.getPastLogs({
+                fromBlock: 1,
+                toBlock: "latest",
+                address: "0x2dba0827ed556f6b4660ff36912f82cd27f52479",
+                topics: ["0xc4da2b6d2e45f545d78cf7310c4d9b3b32fdc81b08c9a5c4a6bf48a923f2dfd5"]
+            }).then(function(eventObj) {
+                console.log(eventObj);
+                eventObj.find(function(item, idx) {
+                    arr_i = idx;
+                    return item.transactionHash.indexOf("dbe3b6385a3113") != -1;
+                });
+                console.log(arr_i);
+                evl = eventObj;
+            });
+        }
+
+        function verify1(eventObj) {
+            //随机选取数据源，避免数据源过于中心化
+            HttpProvider0 = "https://ropsten.infura.io/v3/9445f38252af49668e444e18b92e3520";
+            HttpProvider1 = "https://api.myetherwallet.com/rop";
+            web3 = new Web3(new Web3.providers.HttpProvider(eval("HttpProvider" + parseInt(Math.random() * 10) % 2)));
+
             //1、获取t_sc发过来的eth链上的区块号从EthCurBlkNum到最新区块的所有event logs，如果event logs多于1个，那么每次只处理1个
             //2、将TERA账号及金额发送至t_sc
             var myContract = new web3.eth.Contract(abi, '0x2dba0827ed556f6b4660ff36912f82cd27f52479');
@@ -132,10 +220,14 @@
                     var coin = parseInt("0x" + eventLogs[arr_i + 1].data.substr(66, 64));
                     var cent = parseInt("0x" + eventLogs[arr_i + 1].data.substr(130, 64));
                     recordData(TeraAcc, coin, cent, eventLogs[arr_i + 1].blockNumber, eventLogs[arr_i + 1].transactionHash.substr(2, 6)); //for debug
-                    //commitData(TeraAcc, coin, cent, eventLogs[arr_i + 1].blockNumber, eventLogs[arr_i + 1].transactionHash.substr(2, 10));
+                    if ($("idCB").checked == false) {
+                        randDelayCommitNormal();
+                    } //commitData(TeraAcc, coin, cent, eventLogs[arr_i + 1].blockNumber, eventLogs[arr_i + 1].transactionHash.substr(2, 10));
                 } else {
                     recordData(0, 0, 0, eventLogs[eventLogs.length - 1].blockNumber, eventLogs[eventLogs.length - 1].transactionHash.substr(2, 6)); //for debug
-                    //commitData(0, 0, 0, eventLogs[eventLogs.length - 1].blockNumber, eventLogs[eventLogs.length - 1].transactionHash.substr(2, 10));
+                    if ($("idCB").checked == false) {
+                        randDelayCommitNormal();
+                    } //commitData(0, 0, 0, eventLogs[eventLogs.length - 1].blockNumber, eventLogs[eventLogs.length - 1].transactionHash.substr(2, 10));
                     //如已无数据提交，则提交最后一条交易记录，并且TERA账号，金额均置0，避免攻击者利用无提交窗口，提交虚假数据
                 }
             });
@@ -151,10 +243,6 @@
         }
 
         function addErrInfoToBlk(blkData) {
-            //shaArr = sha3(JSON.stringify(blkData));
-            //blkData.sha = shaArr.slice(0, 10);
-            //console.log("blkData");
-            //console.log(blkData);
             SendCall(USER_ACCOUNT[0].Num, "addErrInfoBlk", blkData, USER_ACCOUNT[0].Num);
         }
 
@@ -167,6 +255,9 @@
                     switch (Data.Description.eventName) {
                         case "verify":
                             verify1(Data.Description);
+                            setTimeout(function() {
+                                verifyReq();
+                            }, 110000);
                             break;
                         case "info":
                             console.log("Event:");
@@ -184,7 +275,7 @@
             }
         });
 
-        function testFunc() { //for debug
+        function getStateFormat() { //for debug
             GetAccountList({
                 StartNum: parseInt(document.getElementById("idInp").value), //BASE_ACCOUNT.Num,
                 CountNum: 1
@@ -199,11 +290,21 @@
 </head>
 
 <body>
-    <button onclick="testStart();">call broadcastVerifyReq</button>
-    <input id="idInp" type="text" />
-    <button onclick="testFunc();">list smartState</button>
-    <button onclick="commitNormal();">commit normal</button>
-    <button onclick="commitErr();">commit err</button>
+    ETH private key(test net) for trial:
+    <br>49889DF041017F390D3FF7ABBAAFC442F52F060DC721E80AB5B8087E35FF5075
+    <br><br>ETH private key:<input type="password" id="idPrv" onblur="showBalance()" /><span id="idSpan"></span>
+    <br><br>Tear account: <input type="text" id="idTeraAcc" />
+    <br><br> deposit value: <input type="text" id="idVal" /> ETH
+    <br><br><button onclick="callEthSmartContract();">1. transfer eth to the contract</button><span id="idSpanMsg1"></span>
+    <br>
+    <br><br><button id="idVerifyReqBtn" onclick="verifyReq();">2. verify request(about 100s)</button><span id="idSpanMsg2"></span>
+    <br>Try to cheat?:<input type="checkbox" id="idCB" value="cheat" onclick="if(this.checked){$('idBtnErr').disabled=false;}else{$('idBtnErr').disabled=true;}" />
+    <br><button id="idBtnErr" onclick="commitErr();" disabled="disabled">commit abnormal data(try to cheat 1000ETH)</button>
+    <br><br>
+    <br><br>
+    <br><br>
+    <br><br>
+    <br><br>For developer: <input id="idInp" type="text" /> <button onclick="getStateFormat();">get smartState</button> <button onclick="getEventLogs();">getEventLogs</button>
 </body>
 
 </html>

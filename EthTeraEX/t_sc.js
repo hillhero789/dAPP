@@ -103,8 +103,8 @@ function verifyReceiveData(Params) {
                         smart_TeraAcc: smartState._TeraAcc,
                         smart_coin: smartState._depositCoin,
                         smart_cent: smartState._depositCent,
-                        smart_ethBlk: smartState._EthCurBlkNum,
-                        smart_ethTr: smartState._EthTxTruncate,
+                        smart_ethBlk: smartState._EthCurBlkNum_t,
+                        smart_ethTr: smartState._EthTxTruncate_t,
                         receive_TeraAcc: Params.TeraAccNum,
                         receive_coin: Params.coinNum,
                         receive_cent: Params.centNum,
@@ -186,8 +186,8 @@ function addErrInfoBlk(Params) {
 
 function OnCreate() { //初始化smartState
     var smartState = ReadState(context.Smart.Account);
-    smartState._EthCurBlkNum = 5905802;
-    smartState._EthTxTruncate = "4e09a2";
+    smartState._EthCurBlkNum = 5937530;
+    smartState._EthTxTruncate = "81155c";
     smartState._blkNumOfReq = 0;
     smartState._isPending = false;
     smartState._isAbnormal = false
