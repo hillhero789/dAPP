@@ -186,8 +186,8 @@ function addErrInfoBlk(Params) {
 
 function OnCreate() { //初始化smartState
     var smartState = ReadState(context.Smart.Account);
-    smartState._EthCurBlkNum = 5937530;
-    smartState._EthTxTruncate = "81155c";
+    smartState._EthCurBlkNum = 5940326;
+    smartState._EthTxTruncate = "1254f5";
     smartState._blkNumOfReq = 0;
     smartState._isPending = false;
     smartState._isAbnormal = false

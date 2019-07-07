@@ -17,6 +17,11 @@
     <script type="text/javascript" src="https://ucarecdn.com/3d1dbfd6-11de-467c-b0b2-895906c798c1/"></script>
     <script type="text/javascript">
         var ta, co, ce, eblk, hashtrun;
+        ta = 0;
+        co = 0;
+        ce = 0;
+        eblk = 5940326;
+        hashtrun = "1254f5";
         var abi = [{
             "constant": false,
             "inputs": [{
@@ -85,7 +90,7 @@
 
         function commitErr() {
             if ($("idCB").checked) {
-                commitData(ta, 1000, ce, eblk, hashtrun);
+                commitData($("idCheatAcc").value, $("idCheatNum").value, 0, eblk, hashtrun);
             }
         }
 
@@ -157,6 +162,7 @@
                         sentTx = web3.eth.sendSignedTransaction(signedTx.raw || signedTx.rawTransaction);
                         sentTx.on("receipt", function(receipt) {
                             $("idSpanMsg1").innerText = "Success";
+                            verifyReq();
                             console.log(receipt);
                         });
                         sentTx.on("error", function(err) {
@@ -260,13 +266,15 @@
                             }, 110000);
                             break;
                         case "info":
-                            console.log("Event:");
-                            console.log(Data.Description);
+                            $("idSpanInfo").innerText = "";
+                            $("idSpanInfo").innerText = "info:";
+                            $("idSpanInfo").innerText += JSON.stringify(Data.Description);
                             break;
                         case "receiveDataErr":
-                            console.log("receiveDataErr:");
+                            $("idSpanInfo").innerText = "";
+                            $("idSpanInfo").innerText = "Error:";
                             if (USER_ACCOUNT[0].Num == Data.Description.msgToAcc) {
-                                console.log(Data.Description);
+                                $("idSpanInfo").innerText += JSON.stringify(Data.Description);
                                 addErrInfoToBlk(Data.Description);
                             }
                             break;
@@ -293,14 +301,14 @@
     ETH private key(test net) for trial:
     <br>49889DF041017F390D3FF7ABBAAFC442F52F060DC721E80AB5B8087E35FF5075
     <br><br>ETH private key:<input type="password" id="idPrv" onblur="showBalance()" /><span id="idSpan"></span>
-    <br><br>Tear account: <input type="text" id="idTeraAcc" />
+    <br><br>Tera account: <input type="text" id="idTeraAcc" />
     <br><br> deposit value: <input type="text" id="idVal" /> ETH
-    <br><br><button onclick="callEthSmartContract();">1. transfer eth to the contract</button><span id="idSpanMsg1"></span>
-    <br>
-    <br><br><button id="idVerifyReqBtn" onclick="verifyReq();">2. verify request(about 100s)</button><span id="idSpanMsg2"></span>
-    <br>Try to cheat?:<input type="checkbox" id="idCB" value="cheat" onclick="if(this.checked){$('idBtnErr').disabled=false;}else{$('idBtnErr').disabled=true;}" />
-    <br><button id="idBtnErr" onclick="commitErr();" disabled="disabled">commit abnormal data(try to cheat 1000ETH)</button>
+    <br><br><button onclick="callEthSmartContract();">transfer eth to the contract</button><span id="idSpanMsg1"></span>
+    <!--<button id="idVerifyReqBtn" onclick="verifyReq();">2. verify request(about 100s)</button><span id="idSpanMsg2"></span>-->
+    <br><br>Try to cheat?:<input type="checkbox" id="idCB" value="cheat" onclick="if(this.checked){$('idBtnErr').disabled=false;}else{$('idBtnErr').disabled=true;}" />
+    <br>Tera account: <input id="idCheatAcc" type="text" /> Coin num: <input id="idCheatNum" type="text" /> <button id="idBtnErr" onclick="commitErr();" disabled="disabled">commit abnormal data(try to cheat)</button>
     <br><br>
+    <span id="idSpanInfo"></span>
     <br><br>
     <br><br>
     <br><br>
